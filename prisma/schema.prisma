@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  role         String
+  restrictions String[]
+  online       Boolean  @default(false)
+  changes      String[] @default([])
+}
+
+model Donor {
+  id           Int        @id @default(autoincrement())
+  name         String
+  email        String     @unique
+  total        Float      @default(0)
+  lastDonation DateTime?
+  status       String
+  tags         String[]   @default([])
+  donations    Donation[]
+}
+
+model Notification {
+  id      Int      @id @default(autoincrement())
+  type    String
+  message String
+  date    DateTime
+  read    Boolean  @default(false)
+}
+
+model Campaign {
+  id          Int        @id @default(autoincrement())
+  name        String
+  goal        Float
+  raised      Float      @default(0)
+  startDate   DateTime
+  endDate     DateTime
+  description String
+  donations   Donation[]
+  events      Event[]
+}
+
+model Event {
+  id          Int       @id @default(autoincrement())
+  name        String
+  date        DateTime
+  description String
+  image       String?
+  campaignId  Int?
+  campaign    Campaign? @relation(fields: [campaignId], references: [id])
+}
+
+model Donation {
+  id         Int       @id @default(autoincrement())
+  amount     Float
+  date       DateTime
+  donorId    Int
+  campaignId Int?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id])
+  donor      Donor     @relation(fields: [donorId], references: [id])
+}
