@@ -1,31 +1,44 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 import Sidebar from "../components/Sidebar";
-import { donations } from "./data";
+import { handleLogout } from "@/lib/admin-storage";
 
 export default function DonationsPage() {
+    const [donations, setDonations] = useState<any[]>([]);
+    
     // Filter states
-    const [date, setDate] = React.useState("");
-    const [campaign, setCampaign] = React.useState("");
-    const [status, setStatus] = React.useState("");
-    const [donor, setDonor] = React.useState("");
-    const [method, setMethod] = React.useState("");
+    const [date, setDate] = useState("");
+    const [campaign, setCampaign] = useState("");
+    const [status, setStatus] = useState("");
+    const [donor, setDonor] = useState("");
+    const [method, setMethod] = useState("");
+
+    // Fetch donations from API
+    useEffect(() => {
+        fetch("/api/donations")
+            .then(res => res.json())
+            .then(data => setDonations(data))
+            .catch(error => console.error('Error fetching donations:', error));
+    }, []);
 
     // Get unique campaigns and methods from data
-    const campaigns = Array.from(new Set(donations.map(d => d.campaign)));
-    const methods = Array.from(new Set(donations.map(d => d.method)));
-    const statuses = Array.from(new Set(donations.map(d => d.status)));
+    const campaigns = Array.from(new Set(donations.map(d => d.campaign?.name).filter(Boolean)));
+    const statuses = ["Completed", "Pending", "Failed"]; // Add statuses as needed
 
     // Filter logic
-    const filtered = donations.filter(d =>
-        (date ? d.date === date : true) &&
-        (campaign ? d.campaign === campaign : true) &&
-        (status ? d.status === status : true) &&
-        (donor ? d.donor.toLowerCase().includes(donor.toLowerCase()) : true) &&
-        (method ? d.method === method : true)
-    );
+    const filtered = donations.filter(d => {
+        const donationDate = new Date(d.date).toISOString().split('T')[0];
+        const donorName = d.donor?.name || '';
+        const campaignName = d.campaign?.name || '';
+        
+        return (
+            (date ? donationDate === date : true) &&
+            (campaign ? campaignName === campaign : true) &&
+            (donor ? donorName.toLowerCase().includes(donor.toLowerCase()) : true)
+        );
+    });
 
     return (
         <div className="flex min-h-screen bg-[#F8FAFC]">
@@ -36,7 +49,7 @@ export default function DonationsPage() {
                     <div className="flex items-center gap-6">
                         <span className="text-[#1C1917] font-semibold">Sarah Johnson</span>
                         <span className="text-[#57534E] text-base">ID: 12341</span>
-                        <button className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
+                        <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
                     </div>
                 </div>
                 <div className="p-8">
@@ -67,26 +80,6 @@ export default function DonationsPage() {
                                 <option key={c} value={c}>{c}</option>
                             ))}
                         </select>
-                        <select
-                            value={status}
-                            onChange={e => setStatus(e.target.value)}
-                            className="border rounded px-3 py-2 text-sm text-[#1C1917]"
-                        >
-                            <option value="">All Statuses</option>
-                            {statuses.map(s => (
-                                <option key={s} value={s}>{s}</option>
-                            ))}
-                        </select>
-                        <select
-                            value={method}
-                            onChange={e => setMethod(e.target.value)}
-                            className="border rounded px-3 py-2 text-sm text-[#1C1917]"
-                        >
-                            <option value="">All Methods</option>
-                            {methods.map(m => (
-                                <option key={m} value={m}>{m}</option>
-                            ))}
-                        </select>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="min-w-full bg-white border border-[#E2E8F0] rounded-lg">
@@ -96,25 +89,17 @@ export default function DonationsPage() {
                                     <th className="py-2 px-4 border-b">Donor</th>
                                     <th className="py-2 px-4 border-b">Amount</th>
                                     <th className="py-2 px-4 border-b">Date</th>
-                                    <th className="py-2 px-4 border-b">Method</th>
                                     <th className="py-2 px-4 border-b">Campaign</th>
-                                    <th className="py-2 px-4 border-b">Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filtered.map((donation) => (
                                     <tr key={donation.id} className="text-[#334155] hover:bg-[#F8FAFC] transition">
                                         <td className="py-2 px-4 border-b text-center">{donation.id}</td>
-                                        <td className="py-2 px-4 border-b">{donation.donor}</td>
+                                        <td className="py-2 px-4 border-b">{donation.donor?.name || 'Unknown'}</td>
                                         <td className="py-2 px-4 border-b">${donation.amount.toLocaleString()}</td>
-                                        <td className="py-2 px-4 border-b">{donation.date}</td>
-                                        <td className="py-2 px-4 border-b">{donation.method}</td>
-                                        <td className="py-2 px-4 border-b">{donation.campaign}</td>
-                                        <td className="py-2 px-4 border-b">
-                                            <span className={`px-2 py-1 rounded text-xs font-medium ${donation.status === "Completed" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
-                                                {donation.status}
-                                            </span>
-                                        </td>
+                                        <td className="py-2 px-4 border-b">{new Date(donation.date).toLocaleDateString()}</td>
+                                        <td className="py-2 px-4 border-b">{donation.campaign?.name || 'N/A'}</td>
                                     </tr>
                                 ))}
                             </tbody>

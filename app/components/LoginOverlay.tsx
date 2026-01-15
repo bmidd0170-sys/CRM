@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { clearTemporaryData } from "@/lib/temp-data-utils";
 
 interface LoginOverlayProps {
     show: boolean;
@@ -8,6 +9,7 @@ interface LoginOverlayProps {
 }
 
 export default function LoginOverlay({ show, onClose }: LoginOverlayProps) {
+    const [isLoginMode, setIsLoginMode] = useState(false);
     const [orgName, setOrgName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -30,28 +32,115 @@ export default function LoginOverlay({ show, onClose }: LoginOverlayProps) {
                     >
                         &times;
                     </button>
-                    <h2 className="text-2xl font-bold mb-6 text-center text-[#0F766E]">Register Organization</h2>
+                    <h2 className="text-2xl font-bold mb-6 text-center text-[#0F766E]">
+                        {isLoginMode ? "Login" : "Register Organization"}
+                    </h2>
                     <form
                         className="flex flex-col gap-4"
-                        onSubmit={e => {
+                        onSubmit={async (e) => {
                             e.preventDefault();
-                            // Here you would handle registration logic
-                            // After successful registration:
-                            router.push("/dashboard");
-                            onClose();
+                            if (isLoginMode) {
+                                // Handle login logic
+                                try {
+                                  const loginResponse = await fetch('/api/logins', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      email: email,
+                                      password: password
+                                    })
+                                  });
+
+                                  if (!loginResponse.ok) {
+                                    const error = await loginResponse.json();
+                                    alert(`Login failed: ${error.error || 'Invalid credentials'}`);
+                                    return;
+                                  }
+
+                                  const loginData = await loginResponse.json();
+                                  
+                                  // Store admin data in sessionStorage for use in dashboard
+                                  if (loginData.admin) {
+                                    sessionStorage.setItem('currentAdmin', JSON.stringify(loginData.admin));
+                                  }
+
+                                  // Clear temporary data after successful login
+                                  await clearTemporaryData();
+
+                                  // Reset form
+                                  setEmail("");
+                                  setPassword("");
+
+                                  // Navigate to dashboard
+                                  router.push("/dashboard");
+                                  onClose();
+                                } catch (error) {
+                                  console.error('Login error:', error);
+                                  alert('Login failed. Please try again.');
+                                }
+                            } else {
+                                // Handle registration logic
+                                try {
+                                  // Create admin account
+                                  const adminResponse = await fetch('/api/admins', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      name: orgName,
+                                      email: email,
+                                      role: 'Super Admin',
+                                      restrictions: [],
+                                      online: true,
+                                      changes: ['Organization registered']
+                                    })
+                                  });
+
+                                  if (!adminResponse.ok) {
+                                    const error = await adminResponse.json();
+                                    alert(`Registration failed: ${error.error || 'Unknown error'}`);
+                                    return;
+                                  }
+
+                                  const adminData = await adminResponse.json();
+                                  
+                                  // Store admin data in sessionStorage for use in dashboard
+                                  if (adminData.admin || adminData.data) {
+                                    const admin = adminData.admin || adminData.data;
+                                    sessionStorage.setItem('currentAdmin', JSON.stringify(admin));
+                                  }
+
+                                  // Clear temporary data after successful registration
+                                  await clearTemporaryData();
+
+                                  // Reset form
+                                  setOrgName("");
+                                  setEmail("");
+                                  setPassword("");
+                                  setConfirmPassword("");
+
+                                  // Navigate to dashboard
+                                  router.push("/dashboard");
+                                  onClose();
+                                } catch (error) {
+                                  console.error('Registration error:', error);
+                                  alert('Registration failed. Please try again.');
+                                }
+                            }
                         }}
                     >
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Organization's Name</label>
-                            <input
-                                type="text"
-                                className="w-full border border-[#E7E5E4] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#0F766E]"
-                                value={orgName}
-                                onChange={e => setOrgName(e.target.value)}
-                                placeholder="Enter organization name"
-                                required
-                            />
-                        </div>
+                        {!isLoginMode && (
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Organization's Name</label>
+                                <input
+                                    type="text"
+                                    className="w-full border border-[#E7E5E4] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#0F766E]"
+                                    value={orgName}
+                                    onChange={e => setOrgName(e.target.value)}
+                                    placeholder="Enter organization name"
+                                    required
+                                />
+                            </div>
+                        )}
                         <div>
                             <label className="block text-sm font-medium mb-1">Email</label>
                             <input
@@ -74,23 +163,34 @@ export default function LoginOverlay({ show, onClose }: LoginOverlayProps) {
                                 required
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Confirm Password</label>
-                            <input
-                                type="password"
-                                className="w-full border border-[#E7E5E4] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#0F766E]"
-                                value={confirmPassword}
-                                onChange={e => setConfirmPassword(e.target.value)}
-                                placeholder="Confirm password"
-                                required
-                            />
-                        </div>
+                        {!isLoginMode && (
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Confirm Password</label>
+                                <input
+                                    type="password"
+                                    className="w-full border border-[#E7E5E4] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#0F766E]"
+                                    value={confirmPassword}
+                                    onChange={e => setConfirmPassword(e.target.value)}
+                                    placeholder="Confirm password"
+                                    required
+                                />
+                            </div>
+                        )}
                         <button
                             type="submit"
                             className="mt-4 bg-[#0F766E] text-white font-semibold py-2 rounded-lg hover:bg-[#0D5B54] transition"
                         >
-                            Register
+                            {isLoginMode ? "Login" : "Register"}
                         </button>
+                        <div className="text-center mt-2">
+                            <button
+                                type="button"
+                                className="text-[#0F766E] hover:underline text-sm"
+                                onClick={() => setIsLoginMode(!isLoginMode)}
+                            >
+                                {isLoginMode ? "Don't have an account? Register" : "Already have an account? Login"}
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>

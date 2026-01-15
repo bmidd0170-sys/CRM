@@ -1,47 +1,16 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 
-// Example notifications data
-const notifications = [
-    {
-        id: 1,
-        type: "reminder",
-        message: "Contact Sarah Johnson for follow-up on her recent donation.",
-        date: "2025-12-19",
-        read: false,
-    },
-    {
-        id: 2,
-        type: "reminder",
-        message: "Send thank you letter to Emily Rodriguez.",
-        date: "2025-12-20",
-        read: false,
-    },
-    {
-        id: 3,
-        type: "admin",
-        message: "Board meeting scheduled for December 22, 2025.",
-        date: "2025-12-22",
-        read: false,
-    },
-    {
-        id: 4,
-        type: "reminder",
-        message: "Call Michael Chen to discuss recurring donation options.",
-        date: "2025-12-21",
-        read: true,
-    },
-    {
-        id: 5,
-        type: "admin",
-        message: "Prepare monthly donation report for review.",
-        date: "2025-12-25",
-        read: false,
-    },
-];
-
 export default function NotificationsPage() {
+    const [notifications, setNotifications] = useState<any[]>([]);
+
+    useEffect(() => {
+        fetch("/api/notifications")
+            .then(res => res.json())
+            .then(data => setNotifications(data))
+            .catch(error => console.error('Error fetching notifications:', error));
+    }, []);
     return (
         <div className="flex min-h-screen bg-[#F8FAFC]">
             <Sidebar active="Notifications" />
@@ -60,7 +29,7 @@ export default function NotificationsPage() {
                                 <div className={`w-2 h-2 rounded-full ${note.read ? 'bg-[#CBD5E1]' : 'bg-[#0F766E]'}`}></div>
                                 <div className="flex-1">
                                     <div className="text-sm text-[#1C1917] font-medium">{note.message}</div>
-                                    <div className="text-xs text-[#64748B] mt-1">{note.date}</div>
+                                    <div className="text-xs text-[#64748B] mt-1">{new Date(note.date).toLocaleDateString()}</div>
                                 </div>
                                 <div className={`text-xs px-3 py-1 rounded-full font-semibold ${note.type === 'admin' ? 'bg-[#E0E7FF] text-[#3730A3]' : 'bg-[#FDE68A] text-[#92400E]'}`}>
                                     {note.type === 'admin' ? 'Admin' : 'Reminder'}

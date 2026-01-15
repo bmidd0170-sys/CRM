@@ -7,6 +7,7 @@ interface AdminFormProps {
     role: string;
     restrictions: string[];
     online: boolean;
+    organizationName?: string;
   }) => void;
 }
 
@@ -16,7 +17,8 @@ export default function AdminForm({ onCreated }: AdminFormProps) {
     email: "",
     role: "Admin",
     restrictions: "",
-    online: false
+    online: false,
+    organizationName: ""
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -35,7 +37,8 @@ export default function AdminForm({ onCreated }: AdminFormProps) {
         email: form.email,
         role: form.role,
         restrictions: form.restrictions ? [form.restrictions] : [],
-        online: form.online
+        online: form.online,
+        organizationName: form.organizationName || 'Helping Hands'
       };
       const res = await fetch("/api/admins", {
         method: "POST",
@@ -43,7 +46,7 @@ export default function AdminForm({ onCreated }: AdminFormProps) {
         body: JSON.stringify(data)
       });
       if (!res.ok) throw new Error("Failed to create admin");
-      setForm({ name: "", email: "", role: "Admin", restrictions: "", online: false });
+      setForm({ name: "", email: "", role: "Admin", restrictions: "", online: false, organizationName: "" });
       if (onCreated) onCreated(data);
     } catch (err: any) {
       setError(err.message);
@@ -54,6 +57,7 @@ export default function AdminForm({ onCreated }: AdminFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <input name="organizationName" value={form.organizationName} onChange={handleChange} placeholder="Organization Name" required className="border p-2 w-full" />
       <input name="name" value={form.name} onChange={handleChange} placeholder="Admin Name" required className="border p-2 w-full" />
       <input name="email" value={form.email} onChange={handleChange} placeholder="Email" required type="email" className="border p-2 w-full" />
       <select name="role" value={form.role} onChange={handleChange} className="border p-2 w-full">

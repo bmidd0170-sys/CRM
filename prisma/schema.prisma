@@ -8,13 +8,14 @@ datasource db {
 }
 
 model Admin {
-  id           Int      @id @default(autoincrement())
-  name         String
-  email        String   @unique
-  role         String
-  restrictions String[]
-  online       Boolean  @default(false)
-  changes      String[] @default([])
+  id              Int      @id @default(autoincrement())
+  name            String
+  email           String   @unique
+  role            String
+  restrictions    String[]
+  online          Boolean  @default(false)
+  changes         String[] @default([])
+  organizationName String  @default("Helping Hands")
 }
 
 model Donor {
@@ -55,7 +56,7 @@ model Event {
   description String
   image       String?
   campaignId  Int?
-  campaign    Campaign? @relation(fields: [campaignId], references: [id])
+  campaign    Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
 }
 
 model Donation {
@@ -64,6 +65,6 @@ model Donation {
   date       DateTime
   donorId    Int
   campaignId Int?
-  campaign   Campaign? @relation(fields: [campaignId], references: [id])
-  donor      Donor     @relation(fields: [donorId], references: [id])
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  donor      Donor     @relation(fields: [donorId], references: [id], onDelete: Cascade)
 }

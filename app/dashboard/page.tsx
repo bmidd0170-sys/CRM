@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import Sidebar from "../components/Sidebar";
+import { handleLogout } from "@/lib/admin-storage";
 
 const sidebarMenu = [
     { icon: "📊", label: "Dashboard", active: true },
@@ -43,7 +44,7 @@ export default function Dashboard() {
                     <div className="flex items-center gap-6">
                         <span className="text-[#1C1917] font-semibold">Sarah Johnson</span>
                         <span className="text-[#57534E] text-base">ID: 12341</span>
-                        <button className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
+                        <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
                     </div>
                 </div>
 

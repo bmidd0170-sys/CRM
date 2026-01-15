@@ -3,9 +3,11 @@ import React, { useEffect, useState } from "react";
 
 import Sidebar from "../components/Sidebar";
 import DonorStats from "../components/DonorStats";
+import { handleLogout, isSuperAdmin, getAdminId } from "@/lib/admin-storage";
 
 export default function DonorsPage() {
     type Donor = {
+        id?: number;
         name: string;
         email: string;
         total: string;
@@ -18,13 +20,19 @@ export default function DonorsPage() {
     const [typeFilter, setTypeFilter] = useState("All");
     const [sort, setSort] = useState("Latest");
     const [selectedDonor, setSelectedDonor] = useState<Donor | null>(null);
+    const [isSuper, setIsSuper] = useState(false);
 
     useEffect(() => {
+        setIsSuper(isSuperAdmin());
+    }, []);
+
+    function fetchDonors() {
         fetch("/api/donors")
             .then((res) => res.json())
             .then((data) => {
                 // Map backend data to Donor type if needed
                 const mapped = data.map((d: any) => ({
+                    id: d.id,
                     name: d.name,
                     email: d.email,
                     total: `$${d.total}`,
@@ -33,7 +41,42 @@ export default function DonorsPage() {
                 }));
                 setDonors(mapped);
             });
+    }
+
+    useEffect(() => {
+        fetchDonors();
     }, []);
+
+    function handleDelete(donorId: number, event: React.MouseEvent) {
+        event.stopPropagation();
+        if (!confirm('Are you sure you want to delete this donor? This will also delete all their donations.')) {
+            return;
+        }
+
+        const adminId = getAdminId();
+        fetch(`/api/donors?id=${donorId}`, {
+            method: 'DELETE',
+            headers: {
+                'x-admin-id': adminId?.toString() || ''
+            }
+        })
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(err => {
+                        throw new Error(err.error || 'Failed to delete donor');
+                    });
+                }
+                return res.json();
+            })
+            .then(() => {
+                setSelectedDonor(null);
+                fetchDonors(); // Refresh the list
+            })
+            .catch(error => {
+                alert(`Error: ${error.message}`);
+                console.error('Error deleting donor:', error);
+            });
+    }
 
     // Filter, search, and sort logic
     // Helper: parse currency string to number
@@ -77,7 +120,7 @@ export default function DonorsPage() {
                     <div className="flex items-center gap-6">
                         <span className="text-[#1C1917] font-semibold">Sarah Johnson</span>
                         <span className="text-[#57534E] text-base">ID: 12341</span>
-                        <button className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
+                        <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
                     </div>
                 </div>
                 {/* Content */}
@@ -131,6 +174,7 @@ export default function DonorsPage() {
                                         <th className="py-4 px-6 text-[#1C1917] text-xs font-semibold uppercase">Total Donated</th>
                                         <th className="py-4 px-6 text-[#1C1917] text-xs font-semibold uppercase">Last Donation</th>
                                         <th className="py-4 px-6 text-[#1C1917] text-xs font-semibold uppercase">Status</th>
+                                        {isSuper && <th className="py-4 px-6 text-[#1C1917] text-xs font-semibold uppercase">Actions</th>}
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -158,6 +202,16 @@ export default function DonorsPage() {
                                                     <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#E0E7FF] text-[#3730A3]">Lapsed</span>
                                                 )}
                                             </td>
+                                            {isSuper && (
+                                                <td className="py-4 px-6" onClick={(e) => e.stopPropagation()}>
+                                                    <button
+                                                        onClick={(e) => donor.id && handleDelete(donor.id, e)}
+                                                        className="bg-red-500 text-white px-3 py-1 rounded-md text-xs hover:bg-red-600 transition"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                 </tbody>

@@ -1,0 +1,309 @@
+// QUICK API REFERENCE
+
+// ============================================
+// ADMINS ENDPOINTS
+// ============================================
+
+// GET all admins
+GET /api/admins
+
+// GET single admin
+GET /api/admins?id=1
+
+// CREATE admin
+POST /api/admins
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "role": "Admin" // Super Admin, Admin, Manager, Viewer
+}
+
+// UPDATE admin
+PUT /api/admins
+{
+  "id": 1,
+  "name": "Jane Doe",
+  "role": "Manager"
+}
+
+// DELETE admin
+DELETE /api/admins?id=1
+
+
+// ============================================
+// DONORS ENDPOINTS
+// ============================================
+
+// GET all donors
+GET /api/donors
+
+// GET single donor
+GET /api/donors?id=1
+
+// CREATE donor
+POST /api/donors
+{
+  "name": "Jane Smith",
+  "email": "jane@example.com",
+  "status": "Active" // Active, Inactive, Pending
+}
+
+// UPDATE donor
+PUT /api/donors
+{
+  "id": 1,
+  "status": "Inactive"
+}
+
+// DELETE donor
+DELETE /api/donors?id=1
+
+
+// ============================================
+// CAMPAIGNS ENDPOINTS
+// ============================================
+
+// GET all campaigns
+GET /api/campaigns
+
+// GET single campaign
+GET /api/campaigns?id=1
+
+// CREATE campaign
+POST /api/campaigns
+{
+  "name": "Water Project",
+  "goal": 50000,
+  "startDate": "2026-01-01T00:00:00Z",
+  "endDate": "2026-12-31T23:59:59Z",
+  "description": "Building a water well"
+}
+
+// UPDATE campaign
+PUT /api/campaigns
+{
+  "id": 1,
+  "goal": 60000
+}
+
+// DELETE campaign
+DELETE /api/campaigns?id=1
+
+
+// ============================================
+// EVENTS ENDPOINTS
+// ============================================
+
+// GET all events
+GET /api/events
+
+// GET single event
+GET /api/events?id=1
+
+// CREATE event
+POST /api/events
+{
+  "name": "Fundraising Gala",
+  "date": "2026-02-15T19:00:00Z",
+  "description": "Annual gala",
+  "campaignId": 1
+}
+
+// UPDATE event
+PUT /api/events
+{
+  "id": 1,
+  "name": "Updated Event Name"
+}
+
+// DELETE event
+DELETE /api/events?id=1
+
+
+// ============================================
+// DONATIONS ENDPOINTS
+// ============================================
+
+// GET all donations
+GET /api/donations
+
+// GET donations by donor
+GET /api/donations?donorId=1
+
+// GET donations by campaign
+GET /api/donations?campaignId=1
+
+// CREATE donation (auto-updates donor total & campaign raised)
+POST /api/donations
+{
+  "amount": 500,
+  "date": "2026-01-10T14:30:00Z",
+  "donorId": 1,
+  "campaignId": 1
+}
+
+// UPDATE donation (auto-recalculates totals)
+PUT /api/donations
+{
+  "id": 1,
+  "amount": 750
+}
+
+// DELETE donation (auto-recalculates totals)
+DELETE /api/donations?id=1
+
+
+// ============================================
+// NOTIFICATIONS ENDPOINTS
+// ============================================
+
+// GET all notifications
+GET /api/notifications
+
+// GET unread notifications only
+GET /api/notifications?unread=true
+
+// CREATE notification
+POST /api/notifications
+{
+  "type": "Success", // Info, Warning, Error, Success
+  "message": "Donation received",
+  "date": "2026-01-15T10:00:00Z"
+}
+
+// UPDATE notification (e.g., mark as read)
+PUT /api/notifications
+{
+  "id": 1,
+  "read": true
+}
+
+// DELETE notification
+DELETE /api/notifications?id=1
+
+
+// ============================================
+// LOGIN ENDPOINTS
+// ============================================
+
+// LOGIN
+POST /api/logins
+{
+  "email": "john@example.com",
+  "password": "securePassword123"
+}
+
+// UPDATE login status (online/offline)
+PUT /api/logins
+{
+  "adminId": 1,
+  "online": false
+}
+
+
+// ============================================
+// VALIDATION RULES SUMMARY
+// ============================================
+
+ADMIN:
+  - name: required, max 100 chars
+  - email: required, valid email, unique
+  - role: required, enum (Super Admin, Admin, Manager, Viewer)
+  - restrictions: optional, array
+  - online: optional, boolean
+  - changes: optional, array
+
+DONOR:
+  - name: required, max 100 chars
+  - email: required, valid email, unique
+  - total: optional, non-negative number
+  - lastDonation: optional, ISO 8601 datetime
+  - status: required, enum (Active, Inactive, Pending)
+  - tags: optional, array
+
+CAMPAIGN:
+  - name: required, max 200 chars
+  - goal: required, positive number
+  - raised: optional, non-negative number
+  - startDate: required, ISO 8601 datetime
+  - endDate: required, ISO 8601 datetime (must be after startDate)
+  - description: required
+
+EVENT:
+  - name: required, max 200 chars
+  - date: required, ISO 8601 datetime
+  - description: required
+  - image: optional, valid URL
+  - campaignId: optional, valid campaign ID
+
+DONATION:
+  - amount: required, positive number
+  - date: required, ISO 8601 datetime
+  - donorId: required, valid donor ID
+  - campaignId: optional, valid campaign ID
+
+NOTIFICATION:
+  - type: required, enum (Info, Warning, Error, Success)
+  - message: required, max 500 chars
+  - date: required, ISO 8601 datetime
+  - read: optional, boolean
+
+LOGIN:
+  - email: required, valid email
+  - password: required, min 6 chars
+
+
+// ============================================
+// ERROR CODES
+// ============================================
+
+200 OK - Success
+201 Created - Resource created successfully
+400 Bad Request - Validation failed or missing required fields
+404 Not Found - Resource not found
+409 Conflict - Unique constraint violated (e.g., email exists)
+500 Internal Server Error - Server error
+
+
+// ============================================
+// JAVASCRIPT FETCH EXAMPLES
+// ============================================
+
+// GET request
+const data = await fetch('/api/donors').then(r => r.json());
+
+// POST request with validation
+const response = await fetch('/api/donors', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'John Doe',
+    email: 'john@example.com',
+    status: 'Active'
+  })
+});
+
+if (response.ok) {
+  const donor = await response.json();
+  console.log('Created:', donor);
+} else if (response.status === 400) {
+  const error = await response.json();
+  console.error('Validation error:', error.details);
+} else if (response.status === 409) {
+  console.error('Email already exists');
+}
+
+// PUT request
+const response = await fetch('/api/donors', {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    id: 1,
+    status: 'Inactive'
+  })
+});
+
+// DELETE request
+const response = await fetch('/api/donors?id=1', {
+  method: 'DELETE'
+});
