@@ -42,88 +42,88 @@ export default function LoginOverlay({ show, onClose }: LoginOverlayProps) {
                             if (isLoginMode) {
                                 // Handle login logic
                                 try {
-                                  const loginResponse = await fetch('/api/logins', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                      email: email,
-                                      password: password
-                                    })
-                                  });
+                                    const loginResponse = await fetch('/api/logins', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            email: email,
+                                            password: password
+                                        })
+                                    });
 
-                                  if (!loginResponse.ok) {
-                                    const error = await loginResponse.json();
-                                    alert(`Login failed: ${error.error || 'Invalid credentials'}`);
-                                    return;
-                                  }
+                                    if (!loginResponse.ok) {
+                                        const error = await loginResponse.json();
+                                        alert(`Login failed: ${error.error || 'Invalid credentials'}`);
+                                        return;
+                                    }
 
-                                  const loginData = await loginResponse.json();
-                                  
-                                  // Store admin data in sessionStorage for use in dashboard
-                                  if (loginData.admin) {
-                                    sessionStorage.setItem('currentAdmin', JSON.stringify(loginData.admin));
-                                  }
+                                    const loginData = await loginResponse.json();
 
-                                  // Clear temporary data after successful login
-                                  await clearTemporaryData();
+                                    // Store admin data in sessionStorage for use in dashboard
+                                    if (loginData.admin) {
+                                        sessionStorage.setItem('currentAdmin', JSON.stringify(loginData.admin));
+                                    }
 
-                                  // Reset form
-                                  setEmail("");
-                                  setPassword("");
+                                    // Clear temporary data after successful login
+                                    await clearTemporaryData();
 
-                                  // Navigate to dashboard
-                                  router.push("/dashboard");
-                                  onClose();
+                                    // Reset form
+                                    setEmail("");
+                                    setPassword("");
+
+                                    // Navigate to dashboard
+                                    router.push("/dashboard");
+                                    onClose();
                                 } catch (error) {
-                                  console.error('Login error:', error);
-                                  alert('Login failed. Please try again.');
+                                    console.error('Login error:', error);
+                                    alert('Login failed. Please try again.');
                                 }
                             } else {
                                 // Handle registration logic
                                 try {
-                                  // Create admin account
-                                  const adminResponse = await fetch('/api/admins', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                      name: orgName,
-                                      email: email,
-                                      role: 'Super Admin',
-                                      restrictions: [],
-                                      online: true,
-                                      changes: ['Organization registered']
-                                    })
-                                  });
+                                    // Create admin account
+                                    const adminResponse = await fetch('/api/admins', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            name: orgName,
+                                            email: email,
+                                            role: 'Super Admin',
+                                            restrictions: [],
+                                            online: true,
+                                            changes: ['Organization registered']
+                                        })
+                                    });
 
-                                  if (!adminResponse.ok) {
-                                    const error = await adminResponse.json();
-                                    alert(`Registration failed: ${error.error || 'Unknown error'}`);
-                                    return;
-                                  }
+                                    if (!adminResponse.ok) {
+                                        const error = await adminResponse.json();
+                                        alert(`Registration failed: ${error.error || 'Unknown error'}`);
+                                        return;
+                                    }
 
-                                  const adminData = await adminResponse.json();
-                                  
-                                  // Store admin data in sessionStorage for use in dashboard
-                                  if (adminData.admin || adminData.data) {
-                                    const admin = adminData.admin || adminData.data;
-                                    sessionStorage.setItem('currentAdmin', JSON.stringify(admin));
-                                  }
+                                    const adminData = await adminResponse.json();
 
-                                  // Clear temporary data after successful registration
-                                  await clearTemporaryData();
+                                    // Store admin data in sessionStorage for use in dashboard
+                                    if (adminData.admin || adminData.data) {
+                                        const admin = adminData.admin || adminData.data;
+                                        sessionStorage.setItem('currentAdmin', JSON.stringify(admin));
+                                    }
 
-                                  // Reset form
-                                  setOrgName("");
-                                  setEmail("");
-                                  setPassword("");
-                                  setConfirmPassword("");
+                                    // Clear temporary data after successful registration
+                                    await clearTemporaryData();
 
-                                  // Navigate to dashboard
-                                  router.push("/dashboard");
-                                  onClose();
+                                    // Reset form
+                                    setOrgName("");
+                                    setEmail("");
+                                    setPassword("");
+                                    setConfirmPassword("");
+
+                                    // Navigate to dashboard
+                                    router.push("/dashboard");
+                                    onClose();
                                 } catch (error) {
-                                  console.error('Registration error:', error);
-                                  alert('Registration failed. Please try again.');
+                                    console.error('Registration error:', error);
+                                    alert('Registration failed. Please try again.');
                                 }
                             }
                         }}

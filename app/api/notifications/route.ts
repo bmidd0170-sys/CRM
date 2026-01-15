@@ -13,11 +13,11 @@ export async function GET(request: Request) {
       const notification = await prisma.notification.findUnique({
         where: { id: parseInt(id) }
       });
-      
+
       if (!notification) {
         return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
       }
-      
+
       return NextResponse.json(notification);
     }
 
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
       where: unreadOnly === 'true' ? { read: false } : undefined,
       orderBy: { date: 'desc' }
     });
-    
+
     return NextResponse.json(notifications);
   } catch (error) {
     console.error('Notification fetch error:', error);
@@ -37,15 +37,15 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    
+
     // Validate input data
     const validation = validateData(notificationSchema, data);
     if (!validation.success) {
       return NextResponse.json(
-        { 
-          error: 'Validation failed', 
-          details: formatValidationErrors(validation.error) 
-        }, 
+        {
+          error: 'Validation failed',
+          details: formatValidationErrors(validation.error)
+        },
         { status: 400 }
       );
     }
@@ -57,15 +57,15 @@ export async function POST(request: Request) {
     };
 
     // Create notification
-    const newNotification = await prisma.notification.create({ 
-      data: notificationData 
+    const newNotification = await prisma.notification.create({
+      data: notificationData
     });
-    
+
     return NextResponse.json(newNotification, { status: 201 });
   } catch (error) {
     console.error('Notification create error:', error);
     return NextResponse.json(
-      { error: 'Failed to create notification', details: error instanceof Error ? error.message : 'Unknown error' }, 
+      { error: 'Failed to create notification', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -84,10 +84,10 @@ export async function PUT(request: Request) {
     const validation = validateData(notificationSchema.partial(), updateData);
     if (!validation.success) {
       return NextResponse.json(
-        { 
-          error: 'Validation failed', 
-          details: formatValidationErrors(validation.error) 
-        }, 
+        {
+          error: 'Validation failed',
+          details: formatValidationErrors(validation.error)
+        },
         { status: 400 }
       );
     }
@@ -117,7 +117,7 @@ export async function PUT(request: Request) {
   } catch (error) {
     console.error('Notification update error:', error);
     return NextResponse.json(
-      { error: 'Failed to update notification', details: error instanceof Error ? error.message : 'Unknown error' }, 
+      { error: 'Failed to update notification', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -150,7 +150,7 @@ export async function DELETE(request: Request) {
   } catch (error) {
     console.error('Notification delete error:', error);
     return NextResponse.json(
-      { error: 'Failed to delete notification', details: error instanceof Error ? error.message : 'Unknown error' }, 
+      { error: 'Failed to delete notification', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

@@ -13,11 +13,11 @@ export async function GET(request: Request) {
         where: { id: parseInt(id) },
         include: { donations: true }
       });
-      
+
       if (!donor) {
         return NextResponse.json({ error: 'Donor not found' }, { status: 404 });
       }
-      
+
       return NextResponse.json(donor);
     }
 
@@ -36,15 +36,15 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    
+
     // Validate input data
     const validation = validateData(donorSchema, data);
     if (!validation.success) {
       return NextResponse.json(
-        { 
-          error: 'Validation failed', 
-          details: formatValidationErrors(validation.error) 
-        }, 
+        {
+          error: 'Validation failed',
+          details: formatValidationErrors(validation.error)
+        },
         { status: 400 }
       );
     }
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     const emailExists = await checkEmailExists(validation.data.email, 'donor');
     if (emailExists) {
       return NextResponse.json(
-        { error: 'A donor with this email already exists' }, 
+        { error: 'A donor with this email already exists' },
         { status: 409 }
       );
     }
@@ -65,16 +65,16 @@ export async function POST(request: Request) {
     };
 
     // Create donor
-    const newDonor = await prisma.donor.create({ 
+    const newDonor = await prisma.donor.create({
       data: donorData,
       include: { donations: true }
     });
-    
+
     return NextResponse.json(newDonor, { status: 201 });
   } catch (error) {
     console.error('Donor create error:', error);
     return NextResponse.json(
-      { error: 'Failed to create donor', details: error instanceof Error ? error.message : 'Unknown error' }, 
+      { error: 'Failed to create donor', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -93,10 +93,10 @@ export async function PUT(request: Request) {
     const validation = validateData(donorSchema.partial(), updateData);
     if (!validation.success) {
       return NextResponse.json(
-        { 
-          error: 'Validation failed', 
-          details: formatValidationErrors(validation.error) 
-        }, 
+        {
+          error: 'Validation failed',
+          details: formatValidationErrors(validation.error)
+        },
         { status: 400 }
       );
     }
@@ -115,7 +115,7 @@ export async function PUT(request: Request) {
       const emailExists = await checkEmailExists(validation.data.email, 'donor');
       if (emailExists) {
         return NextResponse.json(
-          { error: 'A donor with this email already exists' }, 
+          { error: 'A donor with this email already exists' },
           { status: 409 }
         );
       }
@@ -138,7 +138,7 @@ export async function PUT(request: Request) {
   } catch (error) {
     console.error('Donor update error:', error);
     return NextResponse.json(
-      { error: 'Failed to update donor', details: error instanceof Error ? error.message : 'Unknown error' }, 
+      { error: 'Failed to update donor', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -182,7 +182,7 @@ export async function DELETE(request: Request) {
   } catch (error) {
     console.error('Donor delete error:', error);
     return NextResponse.json(
-      { error: 'Failed to delete donor', details: error instanceof Error ? error.message : 'Unknown error' }, 
+      { error: 'Failed to delete donor', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

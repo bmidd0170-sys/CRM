@@ -12,11 +12,11 @@ export async function GET(request: Request) {
       const admin = await prisma.admin.findUnique({
         where: { id: parseInt(id) }
       });
-      
+
       if (!admin) {
         return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
       }
-      
+
       return NextResponse.json(admin);
     }
 
@@ -34,15 +34,15 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    
+
     // Validate input data
     const validation = validateData(adminSchema, data);
     if (!validation.success) {
       return NextResponse.json(
-        { 
-          error: 'Validation failed', 
-          details: formatValidationErrors(validation.error) 
-        }, 
+        {
+          error: 'Validation failed',
+          details: formatValidationErrors(validation.error)
+        },
         { status: 400 }
       );
     }
@@ -51,21 +51,21 @@ export async function POST(request: Request) {
     const emailExists = await checkEmailExists(validation.data.email, 'admin');
     if (emailExists) {
       return NextResponse.json(
-        { error: 'An admin with this email already exists' }, 
+        { error: 'An admin with this email already exists' },
         { status: 409 }
       );
     }
 
     // Create admin
-    const newAdmin = await prisma.admin.create({ 
-      data: validation.data 
+    const newAdmin = await prisma.admin.create({
+      data: validation.data
     });
-    
+
     return NextResponse.json({ admin: newAdmin, data: newAdmin }, { status: 201 });
   } catch (error) {
     console.error('Admin create error:', error);
     return NextResponse.json(
-      { error: 'Failed to create admin', details: error instanceof Error ? error.message : 'Unknown error' }, 
+      { error: 'Failed to create admin', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -84,10 +84,10 @@ export async function PUT(request: Request) {
     const validation = validateData(adminSchema.partial(), updateData);
     if (!validation.success) {
       return NextResponse.json(
-        { 
-          error: 'Validation failed', 
-          details: formatValidationErrors(validation.error) 
-        }, 
+        {
+          error: 'Validation failed',
+          details: formatValidationErrors(validation.error)
+        },
         { status: 400 }
       );
     }
@@ -106,7 +106,7 @@ export async function PUT(request: Request) {
       const emailExists = await checkEmailExists(validation.data.email, 'admin');
       if (emailExists) {
         return NextResponse.json(
-          { error: 'An admin with this email already exists' }, 
+          { error: 'An admin with this email already exists' },
           { status: 409 }
         );
       }
@@ -122,7 +122,7 @@ export async function PUT(request: Request) {
   } catch (error) {
     console.error('Admin update error:', error);
     return NextResponse.json(
-      { error: 'Failed to update admin', details: error instanceof Error ? error.message : 'Unknown error' }, 
+      { error: 'Failed to update admin', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -155,7 +155,7 @@ export async function DELETE(request: Request) {
   } catch (error) {
     console.error('Admin delete error:', error);
     return NextResponse.json(
-      { error: 'Failed to delete admin', details: error instanceof Error ? error.message : 'Unknown error' }, 
+      { error: 'Failed to delete admin', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

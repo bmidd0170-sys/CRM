@@ -48,10 +48,10 @@ export async function updateDonorTotal(donorId: number) {
     where: { donorId },
     _sum: { amount: true }
   });
-  
+
   await prisma.donor.update({
     where: { id: donorId },
-    data: { 
+    data: {
       total: total._sum.amount || 0,
       lastDonation: new Date()
     }
@@ -63,7 +63,7 @@ export async function updateCampaignRaised(campaignId: number) {
     where: { campaignId },
     _sum: { amount: true }
   });
-  
+
   await prisma.campaign.update({
     where: { id: campaignId },
     data: { raised: total._sum.amount || 0 }

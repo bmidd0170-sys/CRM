@@ -15,11 +15,11 @@ export async function GET(request: Request) {
         where: { id: parseInt(id) },
         include: { donor: true, campaign: true }
       });
-      
+
       if (!donation) {
         return NextResponse.json({ error: 'Donation not found' }, { status: 404 });
       }
-      
+
       return NextResponse.json(donation);
     }
 
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
       include: { donor: true, campaign: true },
       orderBy: { date: 'desc' }
     });
-    
+
     return NextResponse.json(donations);
   } catch (error) {
     console.error('Donation fetch error:', error);
@@ -45,15 +45,15 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    
+
     // Validate input data
     const validation = validateData(donationSchema, data);
     if (!validation.success) {
       return NextResponse.json(
-        { 
-          error: 'Validation failed', 
-          details: formatValidationErrors(validation.error) 
-        }, 
+        {
+          error: 'Validation failed',
+          details: formatValidationErrors(validation.error)
+        },
         { status: 400 }
       );
     }
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     const donorExists = await checkDonorExists(validation.data.donorId);
     if (!donorExists) {
       return NextResponse.json(
-        { error: 'Donor not found' }, 
+        { error: 'Donor not found' },
         { status: 404 }
       );
     }
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
       const campaignExists = await checkCampaignExists(validation.data.campaignId);
       if (!campaignExists) {
         return NextResponse.json(
-          { error: 'Campaign not found' }, 
+          { error: 'Campaign not found' },
           { status: 404 }
         );
       }
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     // Create donation in a transaction
     const newDonation = await prisma.$transaction(async (tx) => {
       // Create the donation
-      const donation = await tx.donation.create({ 
+      const donation = await tx.donation.create({
         data: donationData,
         include: { donor: true, campaign: true }
       });
@@ -97,10 +97,10 @@ export async function POST(request: Request) {
         where: { donorId: validation.data.donorId },
         _sum: { amount: true }
       });
-      
+
       await tx.donor.update({
         where: { id: validation.data.donorId },
-        data: { 
+        data: {
           total: donorTotal._sum.amount || 0,
           lastDonation: donationData.date
         }
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
           where: { campaignId: validation.data.campaignId },
           _sum: { amount: true }
         });
-        
+
         await tx.campaign.update({
           where: { id: validation.data.campaignId },
           data: { raised: campaignTotal._sum.amount || 0 }
@@ -121,12 +121,12 @@ export async function POST(request: Request) {
 
       return donation;
     });
-    
+
     return NextResponse.json(newDonation, { status: 201 });
   } catch (error) {
     console.error('Donation create error:', error);
     return NextResponse.json(
-      { error: 'Failed to create donation', details: error instanceof Error ? error.message : 'Unknown error' }, 
+      { error: 'Failed to create donation', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -145,10 +145,10 @@ export async function PUT(request: Request) {
     const validation = validateData(donationSchema.partial(), updateData);
     if (!validation.success) {
       return NextResponse.json(
-        { 
-          error: 'Validation failed', 
-          details: formatValidationErrors(validation.error) 
-        }, 
+        {
+          error: 'Validation failed',
+          details: formatValidationErrors(validation.error)
+        },
         { status: 400 }
       );
     }
@@ -167,7 +167,7 @@ export async function PUT(request: Request) {
       const donorExists = await checkDonorExists(validation.data.donorId);
       if (!donorExists) {
         return NextResponse.json(
-          { error: 'Donor not found' }, 
+          { error: 'Donor not found' },
           { status: 404 }
         );
       }
@@ -178,7 +178,7 @@ export async function PUT(request: Request) {
       const campaignExists = await checkCampaignExists(validation.data.campaignId);
       if (!campaignExists) {
         return NextResponse.json(
-          { error: 'Campaign not found' }, 
+          { error: 'Campaign not found' },
           { status: 404 }
         );
       }
@@ -225,7 +225,7 @@ export async function PUT(request: Request) {
   } catch (error) {
     console.error('Donation update error:', error);
     return NextResponse.json(
-      { error: 'Failed to update donation', details: error instanceof Error ? error.message : 'Unknown error' }, 
+      { error: 'Failed to update donation', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -269,7 +269,7 @@ export async function DELETE(request: Request) {
   } catch (error) {
     console.error('Donation delete error:', error);
     return NextResponse.json(
-      { error: 'Failed to delete donation', details: error instanceof Error ? error.message : 'Unknown error' }, 
+      { error: 'Failed to delete donation', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

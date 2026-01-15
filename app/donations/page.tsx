@@ -7,7 +7,7 @@ import { handleLogout } from "@/lib/admin-storage";
 
 export default function DonationsPage() {
     const [donations, setDonations] = useState<any[]>([]);
-    
+
     // Filter states
     const [date, setDate] = useState("");
     const [campaign, setCampaign] = useState("");
@@ -32,7 +32,7 @@ export default function DonationsPage() {
         const donationDate = new Date(d.date).toISOString().split('T')[0];
         const donorName = d.donor?.name || '';
         const campaignName = d.campaign?.name || '';
-        
+
         return (
             (date ? donationDate === date : true) &&
             (campaign ? campaignName === campaign : true) &&

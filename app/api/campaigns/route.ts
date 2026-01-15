@@ -13,16 +13,16 @@ export async function GET(request: Request) {
         where: { id: parseInt(id) },
         include: { events: true, donations: true }
       });
-      
+
       if (!campaign) {
         return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
       }
-      
+
       return NextResponse.json(campaign);
     }
 
     // Get all campaigns
-    const campaigns = await prisma.campaign.findMany({ 
+    const campaigns = await prisma.campaign.findMany({
       include: { events: true, donations: true },
       orderBy: { id: 'asc' }
     });
@@ -36,15 +36,15 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    
+
     // Validate input data
     const validation = validateData(campaignSchema, data);
     if (!validation.success) {
       return NextResponse.json(
-        { 
-          error: 'Validation failed', 
-          details: formatValidationErrors(validation.error) 
-        }, 
+        {
+          error: 'Validation failed',
+          details: formatValidationErrors(validation.error)
+        },
         { status: 400 }
       );
     }
@@ -57,16 +57,16 @@ export async function POST(request: Request) {
     };
 
     // Create campaign
-    const newCampaign = await prisma.campaign.create({ 
+    const newCampaign = await prisma.campaign.create({
       data: campaignData,
       include: { events: true, donations: true }
     });
-    
+
     return NextResponse.json(newCampaign, { status: 201 });
   } catch (error) {
     console.error('Campaign create error:', error);
     return NextResponse.json(
-      { error: 'Failed to create campaign', details: error instanceof Error ? error.message : 'Unknown error' }, 
+      { error: 'Failed to create campaign', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -85,10 +85,10 @@ export async function PUT(request: Request) {
     const validation = validateData(campaignSchema.partial(), updateData);
     if (!validation.success) {
       return NextResponse.json(
-        { 
-          error: 'Validation failed', 
-          details: formatValidationErrors(validation.error) 
-        }, 
+        {
+          error: 'Validation failed',
+          details: formatValidationErrors(validation.error)
+        },
         { status: 400 }
       );
     }
@@ -120,7 +120,7 @@ export async function PUT(request: Request) {
   } catch (error) {
     console.error('Campaign update error:', error);
     return NextResponse.json(
-      { error: 'Failed to update campaign', details: error instanceof Error ? error.message : 'Unknown error' }, 
+      { error: 'Failed to update campaign', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -164,7 +164,7 @@ export async function DELETE(request: Request) {
   } catch (error) {
     console.error('Campaign delete error:', error);
     return NextResponse.json(
-      { error: 'Failed to delete campaign', details: error instanceof Error ? error.message : 'Unknown error' }, 
+      { error: 'Failed to delete campaign', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

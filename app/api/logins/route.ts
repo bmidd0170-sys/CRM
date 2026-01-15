@@ -5,15 +5,15 @@ import { loginSchema, validateData, formatValidationErrors } from '@/lib/validat
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    
+
     // Validate input data
     const validation = validateData(loginSchema, data);
     if (!validation.success) {
       return NextResponse.json(
-        { 
-          error: 'Validation failed', 
-          details: formatValidationErrors(validation.error) 
-        }, 
+        {
+          error: 'Validation failed',
+          details: formatValidationErrors(validation.error)
+        },
         { status: 400 }
       );
     }
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     const { email, password } = validation.data;
 
     // Check if admin exists with this email
-    const admin = await prisma.admin.findUnique({ 
+    const admin = await prisma.admin.findUnique({
       where: { email },
       select: {
         id: true,
@@ -33,10 +33,10 @@ export async function POST(request: Request) {
         changes: true
       }
     });
-    
+
     if (!admin) {
       return NextResponse.json(
-        { success: false, error: 'Invalid email or password' }, 
+        { success: false, error: 'Invalid email or password' },
         { status: 401 }
       );
     }
@@ -44,15 +44,15 @@ export async function POST(request: Request) {
     // In production, you should verify the password against a hashed version
     // For now, this is a basic implementation
     // TODO: Add proper password hashing verification (bcrypt, argon2, etc.)
-    
+
     // Update admin online status
     const updatedAdmin = await prisma.admin.update({
       where: { id: admin.id },
       data: { online: true }
     });
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       admin: {
         id: updatedAdmin.id,
         name: updatedAdmin.name,
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(
-      { error: 'Login failed', details: error instanceof Error ? error.message : 'Unknown error' }, 
+      { error: 'Login failed', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -89,14 +89,14 @@ export async function PUT(request: Request) {
       data: { online: !!online }
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      admin: updatedAdmin 
+    return NextResponse.json({
+      success: true,
+      admin: updatedAdmin
     });
   } catch (error) {
     console.error('Status update error:', error);
     return NextResponse.json(
-      { error: 'Failed to update status', details: error instanceof Error ? error.message : 'Unknown error' }, 
+      { error: 'Failed to update status', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

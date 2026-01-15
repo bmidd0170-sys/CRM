@@ -13,16 +13,16 @@ export async function GET(request: Request) {
         where: { id: parseInt(id) },
         include: { campaign: true }
       });
-      
+
       if (!event) {
         return NextResponse.json({ error: 'Event not found' }, { status: 404 });
       }
-      
+
       return NextResponse.json(event);
     }
 
     // Get all events
-    const events = await prisma.event.findMany({ 
+    const events = await prisma.event.findMany({
       include: { campaign: true },
       orderBy: { date: 'desc' }
     });
@@ -36,15 +36,15 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    
+
     // Validate input data
     const validation = validateData(eventSchema, data);
     if (!validation.success) {
       return NextResponse.json(
-        { 
-          error: 'Validation failed', 
-          details: formatValidationErrors(validation.error) 
-        }, 
+        {
+          error: 'Validation failed',
+          details: formatValidationErrors(validation.error)
+        },
         { status: 400 }
       );
     }
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       const campaignExists = await checkCampaignExists(validation.data.campaignId);
       if (!campaignExists) {
         return NextResponse.json(
-          { error: 'Campaign not found' }, 
+          { error: 'Campaign not found' },
           { status: 404 }
         );
       }
@@ -67,16 +67,16 @@ export async function POST(request: Request) {
     };
 
     // Create event
-    const newEvent = await prisma.event.create({ 
+    const newEvent = await prisma.event.create({
       data: eventData,
       include: { campaign: true }
     });
-    
+
     return NextResponse.json(newEvent, { status: 201 });
   } catch (error) {
     console.error('Event create error:', error);
     return NextResponse.json(
-      { error: 'Failed to create event', details: error instanceof Error ? error.message : 'Unknown error' }, 
+      { error: 'Failed to create event', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -95,10 +95,10 @@ export async function PUT(request: Request) {
     const validation = validateData(eventSchema.partial(), updateData);
     if (!validation.success) {
       return NextResponse.json(
-        { 
-          error: 'Validation failed', 
-          details: formatValidationErrors(validation.error) 
-        }, 
+        {
+          error: 'Validation failed',
+          details: formatValidationErrors(validation.error)
+        },
         { status: 400 }
       );
     }
@@ -117,7 +117,7 @@ export async function PUT(request: Request) {
       const campaignExists = await checkCampaignExists(validation.data.campaignId);
       if (!campaignExists) {
         return NextResponse.json(
-          { error: 'Campaign not found' }, 
+          { error: 'Campaign not found' },
           { status: 404 }
         );
       }
@@ -140,7 +140,7 @@ export async function PUT(request: Request) {
   } catch (error) {
     console.error('Event update error:', error);
     return NextResponse.json(
-      { error: 'Failed to update event', details: error instanceof Error ? error.message : 'Unknown error' }, 
+      { error: 'Failed to update event', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -184,7 +184,7 @@ export async function DELETE(request: Request) {
   } catch (error) {
     console.error('Event delete error:', error);
     return NextResponse.json(
-      { error: 'Failed to delete event', details: error instanceof Error ? error.message : 'Unknown error' }, 
+      { error: 'Failed to delete event', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
