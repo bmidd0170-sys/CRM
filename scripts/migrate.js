@@ -6,6 +6,7 @@
  */
 
 const { execSync } = require('child_process');
+require('dotenv').config();
 
 if (!process.env.DATABASE_URL) {
   console.log('⚠️  DATABASE_URL is not set. Skipping database migrations.');
@@ -15,7 +16,7 @@ if (!process.env.DATABASE_URL) {
 
 try {
   console.log('Running Prisma migrations...');
-  execSync('prisma migrate deploy --skip-generate', { stdio: 'inherit' });
+  execSync('npx prisma migrate deploy', { stdio: 'inherit' });
   console.log('✅ Migrations completed successfully');
 } catch (error) {
   console.error('❌ Migration failed:', error.message);
