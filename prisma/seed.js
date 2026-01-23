@@ -1,5 +1,12 @@
+const crypto = require("crypto");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
+
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const derivedKey = crypto.pbkdf2Sync(password, salt, 100000, 64, "sha512").toString("hex");
+  return `${salt}:${derivedKey}`;
+}
 
 async function main() {
   // Admins
@@ -8,6 +15,7 @@ async function main() {
       {
         name: "Alice Smith",
         email: "alice@email.com",
+        passwordHash: hashPassword("password123"),
         role: "Super Admin",
         restrictions: [],
         online: true,
@@ -20,6 +28,7 @@ async function main() {
       {
         name: "Bob Lee",
         email: "bob@email.com",
+        passwordHash: hashPassword("password123"),
         role: "Admin",
         restrictions: ["No Delete"],
         online: false,

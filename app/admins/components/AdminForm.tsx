@@ -18,7 +18,9 @@ export default function AdminForm({ onCreated }: AdminFormProps) {
     role: "Admin",
     restrictions: "",
     online: false,
-    organizationName: ""
+    organizationName: "",
+    password: "",
+    confirmPassword: ""
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -32,13 +34,17 @@ export default function AdminForm({ onCreated }: AdminFormProps) {
     setLoading(true);
     setError("");
     try {
+      if (form.password !== form.confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
       const data = {
         name: form.name,
         email: form.email,
         role: form.role,
         restrictions: form.restrictions ? [form.restrictions] : [],
         online: form.online,
-        organizationName: form.organizationName || 'Helping Hands'
+        organizationName: form.organizationName || 'Helping Hands',
+        password: form.password
       };
       const res = await fetch("/api/admins", {
         method: "POST",
@@ -46,7 +52,7 @@ export default function AdminForm({ onCreated }: AdminFormProps) {
         body: JSON.stringify(data)
       });
       if (!res.ok) throw new Error("Failed to create admin");
-      setForm({ name: "", email: "", role: "Admin", restrictions: "", online: false, organizationName: "" });
+      setForm({ name: "", email: "", role: "Admin", restrictions: "", online: false, organizationName: "", password: "", confirmPassword: "" });
       if (onCreated) onCreated(data);
     } catch (err: any) {
       setError(err.message);
@@ -65,6 +71,8 @@ export default function AdminForm({ onCreated }: AdminFormProps) {
         <option value="Super Admin">Super Admin</option>
       </select>
       <input name="restrictions" value={form.restrictions} onChange={handleChange} placeholder="Restrictions (comma separated)" className="border p-2 w-full" />
+      <input name="password" value={form.password} onChange={handleChange} placeholder="Password" required type="password" className="border p-2 w-full" />
+      <input name="confirmPassword" value={form.confirmPassword} onChange={handleChange} placeholder="Confirm Password" required type="password" className="border p-2 w-full" />
       <label className="flex items-center"><input type="checkbox" name="online" checked={form.online} onChange={e => setForm({ ...form, online: e.target.checked })} /> Online</label>
       <button type="submit" disabled={loading} className="bg-[#0F766E] text-white px-4 py-2 rounded">{loading ? "Adding..." : "Add Admin"}</button>
       {error && <div className="text-red-500">{error}</div>}

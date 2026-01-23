@@ -81,6 +81,10 @@ export default function LoginOverlay({ show, onClose }: LoginOverlayProps) {
                             } else {
                                 // Handle registration logic
                                 try {
+                                    if (password !== confirmPassword) {
+                                        alert('Passwords do not match');
+                                        return;
+                                    }
                                     // Create admin account
                                     const adminResponse = await fetch('/api/admins', {
                                         method: 'POST',
@@ -91,7 +95,8 @@ export default function LoginOverlay({ show, onClose }: LoginOverlayProps) {
                                             role: 'Super Admin',
                                             restrictions: [],
                                             online: true,
-                                            changes: ['Organization registered']
+                                            changes: ['Organization registered'],
+                                            password
                                         })
                                     });
 

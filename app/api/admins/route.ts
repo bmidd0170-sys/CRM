@@ -1,6 +1,19 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma, checkEmailExists } from '@/lib/db';
-import { adminSchema, validateData, formatValidationErrors } from '@/lib/validators';
+import { adminCreateSchema, adminUpdateSchema, validateData, formatValidationErrors } from '@/lib/validators';
+import { hashPassword } from '@/lib/auth';
+
+const adminSelect = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  restrictions: true,
+  online: true,
+  changes: true,
+  organizationName: true
+};
 
 export async function GET(request: Request) {
   try {
@@ -10,7 +23,8 @@ export async function GET(request: Request) {
     // Get single admin by ID
     if (id) {
       const admin = await prisma.admin.findUnique({
-        where: { id: parseInt(id) }
+        where: { id: parseInt(id) },
+        select: adminSelect
       });
 
       if (!admin) {
@@ -22,7 +36,8 @@ export async function GET(request: Request) {
 
     // Get all admins
     const admins = await prisma.admin.findMany({
-      orderBy: { id: 'asc' }
+      orderBy: { id: 'asc' },
+      select: adminSelect
     });
     return NextResponse.json(admins);
   } catch (error) {
@@ -36,7 +51,7 @@ export async function POST(request: Request) {
     const data = await request.json();
 
     // Validate input data
-    const validation = validateData(adminSchema, data);
+    const validation = validateData(adminCreateSchema, data);
     if (!validation.success) {
       return NextResponse.json(
         {
@@ -47,8 +62,10 @@ export async function POST(request: Request) {
       );
     }
 
+    const { password, ...adminData } = validation.data;
+
     // Check if email already exists
-    const emailExists = await checkEmailExists(validation.data.email, 'admin');
+    const emailExists = await checkEmailExists(adminData.email, 'admin');
     if (emailExists) {
       return NextResponse.json(
         { error: 'An admin with this email already exists' },
@@ -56,9 +73,17 @@ export async function POST(request: Request) {
       );
     }
 
+    const passwordHash = hashPassword(password);
+
+    const adminCreateData: Prisma.AdminCreateInput = {
+      ...adminData,
+      passwordHash
+    };
+
     // Create admin
     const newAdmin = await prisma.admin.create({
-      data: validation.data
+      data: adminCreateData,
+      select: adminSelect
     });
 
     return NextResponse.json({ admin: newAdmin, data: newAdmin }, { status: 201 });
@@ -81,7 +106,7 @@ export async function PUT(request: Request) {
     }
 
     // Validate input data
-    const validation = validateData(adminSchema.partial(), updateData);
+    const validation = validateData(adminUpdateSchema, updateData);
     if (!validation.success) {
       return NextResponse.json(
         {
@@ -112,10 +137,14 @@ export async function PUT(request: Request) {
       }
     }
 
+    const { password, ...safeData } = validation.data;
+    const passwordHash = password ? hashPassword(password) : undefined;
+
     // Update admin
     const updatedAdmin = await prisma.admin.update({
       where: { id: parseInt(id) },
-      data: validation.data
+      data: { ...safeData, ...(passwordHash ? { passwordHash } : {}) },
+      select: adminSelect
     });
 
     return NextResponse.json(updatedAdmin);

@@ -1,6 +1,24 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { loginSchema, validateData, formatValidationErrors } from '@/lib/validators';
+import { verifyPassword } from '@/lib/auth';
+
+const adminSelect = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  restrictions: true,
+  online: true,
+  changes: true,
+  organizationName: true
+} satisfies Prisma.AdminSelect;
+
+const adminWithPasswordSelect = {
+  ...adminSelect,
+  passwordHash: true
+} satisfies Prisma.AdminSelect;
 
 export async function POST(request: Request) {
   try {
@@ -23,44 +41,29 @@ export async function POST(request: Request) {
     // Check if admin exists with this email
     const admin = await prisma.admin.findUnique({
       where: { email },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        restrictions: true,
-        online: true,
-        changes: true
-      }
+      select: adminWithPasswordSelect
     });
 
-    if (!admin) {
+    const passwordOk = admin?.passwordHash ? verifyPassword(password, admin.passwordHash) : false;
+
+    if (!admin || !passwordOk) {
       return NextResponse.json(
         { success: false, error: 'Invalid email or password' },
         { status: 401 }
       );
     }
 
-    // In production, you should verify the password against a hashed version
-    // For now, this is a basic implementation
-    // TODO: Add proper password hashing verification (bcrypt, argon2, etc.)
-
     // Update admin online status
     const updatedAdmin = await prisma.admin.update({
       where: { id: admin.id },
-      data: { online: true }
+      data: { online: true },
+      select: adminSelect
     });
 
     return NextResponse.json({
       success: true,
       admin: {
-        id: updatedAdmin.id,
-        name: updatedAdmin.name,
-        email: updatedAdmin.email,
-        role: updatedAdmin.role,
-        restrictions: updatedAdmin.restrictions,
-        online: updatedAdmin.online,
-        changes: updatedAdmin.changes
+        ...updatedAdmin
       },
       // Signal that client should clear temporary data
       clearTempData: true
