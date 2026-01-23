@@ -62,7 +62,7 @@ export async function POST(request: Request) {
       select: adminSelect
     });
 
-    return NextResponse.json({
+   return NextResponse.json({
       success: true,
       admin: {
         ...updatedAdmin
