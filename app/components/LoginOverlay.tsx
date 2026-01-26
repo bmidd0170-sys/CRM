@@ -90,12 +90,13 @@ export default function LoginOverlay({ show, onClose }: LoginOverlayProps) {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({
-                                            name: orgName,
+                                            name: email.split('@')[0] || 'Admin',
                                             email: email,
                                             role: 'Super Admin',
                                             restrictions: [],
                                             online: true,
                                             changes: ['Organization registered'],
+                                            organizationName: orgName,
                                             password
                                         })
                                     });

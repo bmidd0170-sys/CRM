@@ -1,13 +1,24 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
+// Ensure the database URL is present at runtime so Prisma can connect.
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL is not set. Add it to your environment (.env) to enable database access.');
+}
+
+// Use SSL for remote hosts (e.g., Neon) and skip for local connections.
+const useSsl = !/localhost|127\.0\.0\.1/i.test(databaseUrl);
+const poolConfig = {
+  connectionString: databaseUrl,
+  ssl: useSsl ? { rejectUnauthorized: false } : undefined,
+};
+
 // Singleton pattern for Prisma Client to prevent multiple instances
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
 export const prisma = globalForPrisma.prisma || new PrismaClient({
-  adapter: new PrismaPg({
-    url: process.env.DATABASE_URL,
-  }),
+  adapter: new PrismaPg(poolConfig),
   log: ['error', 'warn'],
 });
 

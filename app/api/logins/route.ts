@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { loginSchema, validateData, formatValidationErrors } from '@/lib/validators';
-import { verifyPassword } from '@/lib/auth';
+import { verifyPassword, hashPassword } from '@/lib/auth';
 
 const adminSelect = {
   id: true,
@@ -46,9 +46,36 @@ export async function POST(request: Request) {
       select: adminWithPasswordSelect
     });
 
+    // If no admin exists yet, auto-provision a new Super Admin
+    if (!admin) {
+      const newAdmin = await prisma.admin.create({
+        data: {
+          name: email.split('@')[0] || 'New Admin',
+          email,
+          role: 'Super Admin',
+          restrictions: [],
+          online: true,
+          changes: ['Account created'],
+          organizationName: 'Helping Hands',
+          passwordHash: hashPassword(password)
+        },
+        select: adminSelect
+      });
+
+      return NextResponse.json(
+        {
+          success: true,
+          admin: newAdmin,
+          created: true,
+          clearTempData: true
+        },
+        { status: 201 }
+      );
+    }
+
     const passwordOk = admin?.passwordHash ? verifyPassword(password, admin.passwordHash) : false;
 
-    if (!admin || !passwordOk) {
+    if (!passwordOk) {
       return NextResponse.json(
         { success: false, error: 'Invalid email or password' },
         { status: 401 }

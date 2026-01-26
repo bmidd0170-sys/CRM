@@ -5,22 +5,21 @@ const adminBaseSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters'),
   email: z.string().email('Invalid email address'),
   role: z.enum(['Super Admin', 'Admin', 'Manager', 'Viewer']),
-  restrictions: z.array(z.string()).optional().default([]),
-  online: z.boolean().optional().default(false),
-  changes: z.array(z.string()).optional().default([]),
+  restrictions: z.array(z.string()).default([]),
+  online: z.boolean().default(false),
+  changes: z.array(z.string()).default([]),
   organizationName: z.string()
     .min(1, 'Organization name is required')
     .max(100, 'Organization name must be less than 100 characters')
-    .optional()
     .default('Helping Hands')
 });
 
 export const adminCreateSchema = adminBaseSchema.extend({
-  password: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password too long')
+  password: z.string().min(6, 'Password must be at least 6 characters').max(128, 'Password too long')
 });
 
 export const adminUpdateSchema = adminBaseSchema.partial().extend({
-  password: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password too long').optional()
+  password: z.string().min(6, 'Password must be at least 6 characters').max(128, 'Password too long').optional()
 });
 
 // Backwards-compatible export used by existing routes

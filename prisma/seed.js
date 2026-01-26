@@ -1,6 +1,23 @@
+require("dotenv").config();
 const crypto = require("crypto");
 const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+const { PrismaPg } = require("@prisma/adapter-pg");
+
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL is not set. Add it to your environment (.env) before seeding.");
+}
+
+// Use SSL for remote hosts (e.g., Neon) and skip for local connections.
+const useSsl = !/localhost|127\.0\.0\.1/i.test(databaseUrl);
+const poolConfig = {
+  connectionString: databaseUrl,
+  ssl: useSsl ? { rejectUnauthorized: false } : undefined,
+};
+
+const prisma = new PrismaClient({
+  adapter: new PrismaPg(poolConfig),
+});
 
 function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString("hex");
