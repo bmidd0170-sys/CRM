@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma, checkCampaignExists, checkDonorExists, updateDonorTotal, updateCampaignRaised } from '@/lib/db';
+import { prisma, checkCampaignExists, checkDonorExists, updateDonorTotal, updateCampaignRaised, getAdminIdFromRequest, verifyPermission } from '@/lib/db';
 import { donationSchema, validateData, formatValidationErrors } from '@/lib/validators';
 
 export async function GET(request: Request) {
@@ -44,6 +44,13 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    // Check permissions
+    const adminId = getAdminIdFromRequest(request);
+    const permission = await verifyPermission(adminId, 'donations', 'create');
+    if (!permission.authorized) {
+      return NextResponse.json({ error: permission.error }, { status: permission.status });
+    }
+
     const data = await request.json();
 
     // Validate input data
@@ -134,6 +141,13 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    // Check permissions
+    const adminId = getAdminIdFromRequest(request);
+    const permission = await verifyPermission(adminId, 'donations', 'update');
+    if (!permission.authorized) {
+      return NextResponse.json({ error: permission.error }, { status: permission.status });
+    }
+
     const data = await request.json();
     const { id, ...updateData } = data;
 
@@ -238,6 +252,13 @@ export async function DELETE(request: Request) {
 
     if (!id) {
       return NextResponse.json({ error: 'Donation ID is required' }, { status: 400 });
+    }
+
+    // Check permissions
+    const adminId = getAdminIdFromRequest(request);
+    const permission = await verifyPermission(adminId, 'donations', 'delete');
+    if (!permission.authorized) {
+      return NextResponse.json({ error: permission.error }, { status: permission.status });
     }
 
     // Check if donation exists

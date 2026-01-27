@@ -104,3 +104,99 @@ export function getAdminIdFromRequest(request: Request): number | null {
     return null;
   }
 }
+
+// Permission system
+export type PermissionAction = 'create' | 'read' | 'update' | 'delete';
+export type PermissionResource = 'donors' | 'campaigns' | 'events' | 'donations' | 'notifications' | 'admins' | 'reports' | 'settings';
+
+/**
+ * Get admin with restrictions
+ */
+export async function getAdminWithRestrictions(adminId: number) {
+  return await prisma.admin.findUnique({
+    where: { id: adminId },
+    select: { 
+      id: true,
+      role: true,
+      restrictions: true 
+    }
+  });
+}
+
+/**
+ * Check if admin has permission to perform action on resource
+ * Super Admins always have full access
+ * Regular admins are checked against their restrictions
+ */
+export async function checkPermission(
+  adminId: number,
+  resource: PermissionResource,
+  action: PermissionAction
+): Promise<{ allowed: boolean; reason?: string }> {
+  const admin = await getAdminWithRestrictions(adminId);
+  
+  if (!admin) {
+    return { allowed: false, reason: 'Admin not found' };
+  }
+
+  // Super Admins have all permissions
+  if (admin.role === 'Super Admin') {
+    return { allowed: true };
+  }
+
+  // Check restrictions
+  const restrictions = admin.restrictions || [];
+  
+  // Check for "No Delete" restriction
+  if (action === 'delete' && restrictions.includes('No Delete')) {
+    return { allowed: false, reason: 'Admin does not have delete permissions' };
+  }
+
+  // Check for "No Edit" restriction (covers both create and update)
+  if ((action === 'create' || action === 'update') && restrictions.includes('No Edit')) {
+    return { allowed: false, reason: 'Admin does not have edit permissions' };
+  }
+
+  // Check for resource-specific restrictions (e.g., "donors", "campaigns", "events")
+  if (restrictions.includes(resource)) {
+    return { allowed: false, reason: `Admin does not have access to ${resource}` };
+  }
+
+  // Check for combined restrictions (e.g., "No Delete donors")
+  const combinedRestriction = `No ${action.charAt(0).toUpperCase() + action.slice(1)} ${resource}`;
+  if (restrictions.some(r => r.toLowerCase() === combinedRestriction.toLowerCase())) {
+    return { allowed: false, reason: `Admin cannot ${action} ${resource}` };
+  }
+
+  // If no restrictions matched, allow the action
+  return { allowed: true };
+}
+
+/**
+ * Middleware helper to verify permission and return appropriate error response
+ */
+export async function verifyPermission(
+  adminId: number | null,
+  resource: PermissionResource,
+  action: PermissionAction
+): Promise<{ authorized: true } | { authorized: false; status: number; error: string }> {
+  if (!adminId) {
+    return {
+      authorized: false,
+      status: 401,
+      error: 'Unauthorized: Admin authentication required'
+    };
+  }
+
+  const permission = await checkPermission(adminId, resource, action);
+  
+  if (!permission.allowed) {
+    return {
+      authorized: false,
+      status: 403,
+      error: `Forbidden: ${permission.reason || 'Access denied'}`
+    };
+  }
+
+  return { authorized: true };
+}

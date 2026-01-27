@@ -2,7 +2,7 @@ export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
-import { prisma, checkEmailExists } from '@/lib/db';
+import { prisma, checkEmailExists, getAdminIdFromRequest, verifyPermission } from '@/lib/db';
 import { adminCreateSchema, adminUpdateSchema, validateData, formatValidationErrors } from '@/lib/validators';
 import { hashPassword } from '@/lib/auth';
 
@@ -56,6 +56,13 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    // Check permissions
+    const adminId = getAdminIdFromRequest(request);
+    const permission = await verifyPermission(adminId, 'admins', 'create');
+    if (!permission.authorized) {
+      return NextResponse.json({ error: permission.error }, { status: permission.status });
+    }
+
     const data = await request.json();
 
     // Validate input data
@@ -106,6 +113,13 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    // Check permissions
+    const adminId = getAdminIdFromRequest(request);
+    const permission = await verifyPermission(adminId, 'admins', 'update');
+    if (!permission.authorized) {
+      return NextResponse.json({ error: permission.error }, { status: permission.status });
+    }
+
     const data = await request.json();
     const { id, ...updateData } = data;
 

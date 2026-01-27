@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
-import EventForm from "../components/EventForm";
-import { isSuperAdmin, getAdminId } from "@/lib/admin-storage";
+import EventForm from "./components/EventForm";
+import { canDelete, canCreate, canEdit, getAdminId } from "@/lib/admin-storage";
 
 // Example recipients (could be fetched from API or state)
 const recipientsList = [
@@ -17,10 +17,15 @@ const recipientsList = [
 export default function EventsPage() {
     const [events, setEvents] = useState<any[]>([]);
     const [showForm, setShowForm] = useState(false);
-    const [isSuper, setIsSuper] = useState(false);
+    const [editingEvent, setEditingEvent] = useState<any | null>(null);
+    const [canDeleteEvents, setCanDeleteEvents] = useState(false);
+    const [canCreateEvents, setCanCreateEvents] = useState(false);
+    const [canEditEvents, setCanEditEvents] = useState(false);
 
     useEffect(() => {
-        setIsSuper(isSuperAdmin());
+        setCanDeleteEvents(canDelete('events'));
+        setCanCreateEvents(canCreate('events'));
+        setCanEditEvents(canEdit('events'));
     }, []);
 
     // Fetch events from API
@@ -35,24 +40,56 @@ export default function EventsPage() {
         fetchEvents();
     }, []);
 
-    function handleCreate(form: { name: string; date: string; description: string; notify: string[]; image?: string | null }) {
-        // Send to API instead of just updating local state
-        fetch("/api/events", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+    async function handleCreate(form: { name: string; date: string; description: string; image?: string | null; campaignId?: number | null }) {
+        try {
+            const dateIso = new Date(form.date).toISOString();
+
+            const payload = {
                 name: form.name,
-                date: form.date,
+                date: dateIso,
                 description: form.description,
-                image: form.image || null,
-            }),
-        })
-            .then(res => res.json())
-            .then(() => {
-                setShowForm(false);
-                fetchEvents(); // Refresh the list
-            })
-            .catch(error => console.error('Error creating event:', error));
+                image: form.image && form.image.trim() ? form.image : null,
+                campaignId: form.campaignId || null,
+            };
+
+            const adminId = getAdminId();
+            const method = editingEvent ? 'PUT' : 'POST';
+            const body = editingEvent 
+                ? { ...payload, id: editingEvent.id }
+                : payload;
+
+            const res = await fetch("/api/events", {
+                method,
+                headers: { 
+                    "Content-Type": "application/json",
+                    'x-admin-id': adminId?.toString() || ''
+                },
+                body: JSON.stringify(body),
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => null);
+                const message = err?.details
+                    ? Array.isArray(err.details)
+                        ? err.details.map((d: any) => `${d.field}: ${d.message}`).join(', ')
+                        : err.details
+                    : err?.error || 'Failed to save event';
+                throw new Error(message);
+            }
+
+            setShowForm(false);
+            setEditingEvent(null);
+            fetchEvents();
+        } catch (error: any) {
+            alert(`Error: ${error.message}`);
+            console.error('Error saving event:', error);
+        }
+    }
+
+    function handleEditClick(event: any, evt: React.MouseEvent) {
+        evt.stopPropagation();
+        setEditingEvent(event);
+        setShowForm(true);
     }
 
     function handleDelete(eventId: number, event: React.MouseEvent) {
@@ -95,18 +132,24 @@ export default function EventsPage() {
                 <div className="p-8">
                     <div className="flex justify-between items-center mb-8">
                         <h2 className="text-xl font-semibold">Upcoming Events</h2>
-                        <button
-                            className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition"
-                            onClick={() => setShowForm(true)}
-                        >
-                            + Create Event
-                        </button>
+                        {canCreateEvents && (
+                            <button
+                                className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition"
+                                onClick={() => setShowForm(true)}
+                            >
+                                + Create Event
+                            </button>
+                        )}
                     </div>
                     {showForm && (
                         <EventForm
                             onCreate={handleCreate}
-                            onClose={() => setShowForm(false)}
+                            onClose={() => {
+                                setShowForm(false);
+                                setEditingEvent(null);
+                            }}
                             recipients={recipientsList}
+                            event={editingEvent}
                         />
                     )}
                     <div className="grid gap-6 md:grid-cols-2">
@@ -115,25 +158,32 @@ export default function EventsPage() {
                                 key={event.id}
                                 className="bg-white border border-[#E2E8F0] rounded-lg p-6 shadow-sm relative"
                             >
-                                {isSuper && (
+                                {canDeleteEvents && (
                                     <button
                                         onClick={(e) => handleDelete(event.id, e)}
-                                        className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-md text-xs hover:bg-red-600 transition"
+                                        className="absolute top-4 right-16 bg-rose-500 text-white px-3 py-1 rounded-md text-xs hover:bg-rose-600 transition"
                                         title="Delete Event"
                                     >
                                         Delete
                                     </button>
                                 )}
+                                {canEditEvents && (
+                                    <button
+                                        onClick={(e) => handleEditClick(event, e)}
+                                        className="absolute top-4 right-4 bg-[#0F766E] text-white px-3 py-1 rounded-md text-xs hover:bg-[#0D5B54] transition"
+                                        title="Edit Event"
+                                    >
+                                        Edit
+                                    </button>
+                                )}
                                 {event.image && (
                                     <img src={event.image} alt={event.name} className="mb-4 max-h-40 rounded w-full object-cover" />
                                 )}
-                                <div className="flex justify-between items-center mb-2 pr-20">
-                                    <h3 className="text-lg font-bold text-[#1C1917]">{event.name}</h3>
-                                    <span className="text-xs text-[#64748B]">
-                                        {new Date(event.date).toLocaleDateString()}
-                                    </span>
-                                </div>
-                                <p className="mb-2 text-[#334155]">{event.description}</p>
+                                <h3 className="text-lg font-bold text-[#1C1917] mb-2">{event.name}</h3>
+                                <p className="mb-3 text-[#334155]">{event.description}</p>
+                                <span className="text-sm font-semibold text-[#0F766E] block mb-3">
+                                    {new Date(event.date).toLocaleDateString()}
+                                </span>
                                 {event.campaign && (
                                     <div className="text-sm text-[#64748B]">
                                         Campaign: {event.campaign.name}

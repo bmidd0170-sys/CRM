@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma, checkEmailExists, checkIsSuperAdmin, getAdminIdFromRequest } from '@/lib/db';
+import { prisma, checkEmailExists, getAdminIdFromRequest, verifyPermission } from '@/lib/db';
 import { donorSchema, validateData, formatValidationErrors } from '@/lib/validators';
 
 export async function GET(request: Request) {
@@ -35,6 +35,13 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    // Check permissions
+    const adminId = getAdminIdFromRequest(request);
+    const permission = await verifyPermission(adminId, 'donors', 'create');
+    if (!permission.authorized) {
+      return NextResponse.json({ error: permission.error }, { status: permission.status });
+    }
+
     const data = await request.json();
 
     // Validate input data
@@ -82,6 +89,13 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    // Check permissions
+    const adminId = getAdminIdFromRequest(request);
+    const permission = await verifyPermission(adminId, 'donors', 'update');
+    if (!permission.authorized) {
+      return NextResponse.json({ error: permission.error }, { status: permission.status });
+    }
+
     const data = await request.json();
     const { id, ...updateData } = data;
 
@@ -153,15 +167,11 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Donor ID is required' }, { status: 400 });
     }
 
-    // Check if admin is logged in and is a Super Admin
+    // Check permissions
     const adminId = getAdminIdFromRequest(request);
-    if (!adminId) {
-      return NextResponse.json({ error: 'Unauthorized: Admin authentication required' }, { status: 401 });
-    }
-
-    const isSuperAdmin = await checkIsSuperAdmin(adminId);
-    if (!isSuperAdmin) {
-      return NextResponse.json({ error: 'Forbidden: Only Super Admins can delete donors' }, { status: 403 });
+    const permission = await verifyPermission(adminId, 'donors', 'delete');
+    if (!permission.authorized) {
+      return NextResponse.json({ error: permission.error }, { status: permission.status });
     }
 
     // Check if donor exists

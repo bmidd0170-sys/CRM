@@ -3,7 +3,8 @@ import React, { useEffect, useState } from "react";
 
 import Sidebar from "../components/Sidebar";
 import DonorStats from "../components/DonorStats";
-import { handleLogout, isSuperAdmin, getAdminId } from "@/lib/admin-storage";
+import DonorForm from "./components/DonorForm";
+import { handleLogout, canDelete, canEdit, getAdminId } from "@/lib/admin-storage";
 
 export default function DonorsPage() {
     type Donor = {
@@ -20,10 +21,14 @@ export default function DonorsPage() {
     const [typeFilter, setTypeFilter] = useState("All");
     const [sort, setSort] = useState("Latest");
     const [selectedDonor, setSelectedDonor] = useState<Donor | null>(null);
-    const [isSuper, setIsSuper] = useState(false);
+    const [editingDonor, setEditingDonor] = useState<Donor | null>(null);
+    const [showForm, setShowForm] = useState(false);
+    const [canDeleteDonors, setCanDeleteDonors] = useState(false);
+    const [canEditDonors, setCanEditDonors] = useState(false);
 
     useEffect(() => {
-        setIsSuper(isSuperAdmin());
+        setCanDeleteDonors(canDelete('donors'));
+        setCanEditDonors(canEdit('donors'));
     }, []);
 
     function fetchDonors() {
@@ -76,6 +81,12 @@ export default function DonorsPage() {
                 alert(`Error: ${error.message}`);
                 console.error('Error deleting donor:', error);
             });
+    }
+
+    function handleEditClick(donor: Donor, event: React.MouseEvent) {
+        event.stopPropagation();
+        setEditingDonor(donor);
+        setShowForm(true);
     }
 
     // Filter, search, and sort logic
@@ -174,7 +185,7 @@ export default function DonorsPage() {
                                         <th className="py-4 px-6 text-[#1C1917] text-xs font-semibold uppercase">Total Donated</th>
                                         <th className="py-4 px-6 text-[#1C1917] text-xs font-semibold uppercase">Last Donation</th>
                                         <th className="py-4 px-6 text-[#1C1917] text-xs font-semibold uppercase">Status</th>
-                                        {isSuper && <th className="py-4 px-6 text-[#1C1917] text-xs font-semibold uppercase">Actions</th>}
+                                        {(canDeleteDonors || canEditDonors) && <th className="py-4 px-6 text-[#1C1917] text-xs font-semibold uppercase">Actions</th>}
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -202,14 +213,24 @@ export default function DonorsPage() {
                                                     <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#E0E7FF] text-[#3730A3]">Lapsed</span>
                                                 )}
                                             </td>
-                                            {isSuper && (
+                                            {(canDeleteDonors || canEditDonors) && (
                                                 <td className="py-4 px-6" onClick={(e) => e.stopPropagation()}>
-                                                    <button
-                                                        onClick={(e) => donor.id && handleDelete(donor.id, e)}
-                                                        className="bg-red-500 text-white px-3 py-1 rounded-md text-xs hover:bg-red-600 transition"
-                                                    >
-                                                        Delete
-                                                    </button>
+                                                    {canEditDonors && (
+                                                        <button
+                                                            onClick={(e) => handleEditClick(donor, e)}
+                                                            className="bg-[#0F766E] text-white px-3 py-1 rounded-md text-xs hover:bg-[#0D5B54] transition mr-3"
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                    )}
+                                                    {canDeleteDonors && (
+                                                        <button
+                                                            onClick={(e) => donor.id && handleDelete(donor.id, e)}
+                                                            className="bg-rose-500 text-white px-3 py-1 rounded-md text-xs hover:bg-rose-600 transition"
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    )}
                                                 </td>
                                             )}
                                         </tr>
@@ -242,12 +263,58 @@ export default function DonorsPage() {
                                             <li>Oct 5, 2024 - $1,000</li>
                                         </ul>
                                     </div>
+                                    {(canDeleteDonors || canEditDonors) && (
+                                        <div className="mt-6 pt-4 border-t border-gray-200 flex gap-2">
+                                            {canEditDonors && selectedDonor.id && (
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingDonor(selectedDonor);
+                                                        setShowForm(true);
+                                                        setSelectedDonor(null);
+                                                    }}
+                                                    className="flex-1 bg-[#0F766E] text-white px-4 py-2 rounded-md font-medium hover:bg-[#0D5B54] transition"
+                                                >
+                                                    Edit Donor
+                                                </button>
+                                            )}
+                                            {canDeleteDonors && selectedDonor.id && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDelete(selectedDonor.id!, e);
+                                                    }}
+                                                    className="flex-1 bg-rose-500 text-white px-4 py-2 rounded-md font-medium hover:bg-rose-600 transition"
+                                                >
+                                                    Delete Donor
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}
                     </section>
                 </div>
             </main>
+            {showForm && (
+                <DonorForm
+                    donor={editingDonor ? {
+                        id: editingDonor.id || 0,
+                        name: editingDonor.name,
+                        email: editingDonor.email,
+                        status: editingDonor.status
+                    } : null}
+                    onSave={() => {
+                        setShowForm(false);
+                        setEditingDonor(null);
+                        fetchDonors();
+                    }}
+                    onClose={() => {
+                        setShowForm(false);
+                        setEditingDonor(null);
+                    }}
+                />
+            )}
         </div>
     );
 }

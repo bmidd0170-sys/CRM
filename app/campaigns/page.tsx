@@ -5,16 +5,21 @@ import Sidebar from "../components/Sidebar";
 import CampaignForm from "../components/CampaignForm";
 import CampaignDetails from "../components/CampaignDetails";
 import { donations } from "./donationsData";
-import { isSuperAdmin, getAdminId } from "@/lib/admin-storage";
+import { canDelete, canCreate, canEdit, getAdminId } from "@/lib/admin-storage";
 
 export default function CampaignsPage() {
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [showForm, setShowForm] = useState(false);
+    const [editingCampaign, setEditingCampaign] = useState<any | null>(null);
     const [selectedCampaign, setSelectedCampaign] = useState<any | null>(null);
-    const [isSuper, setIsSuper] = useState(false);
+    const [canDeleteCampaigns, setCanDeleteCampaigns] = useState(false);
+    const [canCreateCampaigns, setCanCreateCampaigns] = useState(false);
+    const [canEditCampaigns, setCanEditCampaigns] = useState(false);
 
     useEffect(() => {
-        setIsSuper(isSuperAdmin());
+        setCanDeleteCampaigns(canDelete('campaigns'));
+        setCanCreateCampaigns(canCreate('campaigns'));
+        setCanEditCampaigns(canEdit('campaigns'));
     }, []);
 
     // Fetch campaigns from API
@@ -31,6 +36,19 @@ export default function CampaignsPage() {
     function handleCreated() {
         setShowForm(false);
         fetchCampaigns(); // Refresh after adding
+    }
+
+    function handleEdited() {
+        setEditingCampaign(null);
+        setShowForm(false);
+        setSelectedCampaign(null);
+        fetchCampaigns(); // Refresh after editing
+    }
+
+    function handleEditClick(campaign: any, event: React.MouseEvent) {
+        event.stopPropagation();
+        setEditingCampaign(campaign);
+        setShowForm(true);
     }
 
     function handleDelete(campaignId: number, event: React.MouseEvent) {
@@ -73,15 +91,25 @@ export default function CampaignsPage() {
                 <div className="p-8">
                     <div className="flex justify-between items-center mb-8">
                         <h2 className="text-xl font-semibold">Active Campaigns</h2>
-                        <button
-                            className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition"
-                            onClick={() => setShowForm(true)}
-                        >
-                            + Create Campaign
-                        </button>
+                        {canCreateCampaigns && (
+                            <button
+                                className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition"
+                                onClick={() => setShowForm(true)}
+                            >
+                                + Create Campaign
+                            </button>
+                        )}
                     </div>
                     {showForm && (
-                        <CampaignForm onCreate={handleCreated} onClose={() => setShowForm(false)} />
+                        <CampaignForm 
+                            onCreate={handleCreated} 
+                            onEdit={(id, data) => handleEdited()}
+                            onClose={() => {
+                                setShowForm(false);
+                                setEditingCampaign(null);
+                            }}
+                            campaign={editingCampaign}
+                        />
                     )}
                     <div className="grid gap-6 md:grid-cols-2">
                         {campaigns.map(c => (
@@ -90,20 +118,27 @@ export default function CampaignsPage() {
                                 className="bg-white border border-[#E2E8F0] rounded-lg p-6 shadow-sm cursor-pointer hover:shadow-md transition relative"
                                 onClick={() => setSelectedCampaign(c)}
                             >
-                                {isSuper && (
+                                {canDeleteCampaigns && (
                                     <button
                                         onClick={(e) => handleDelete(c.id, e)}
-                                        className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-md text-xs hover:bg-red-600 transition"
+                                        className="absolute top-4 right-16 bg-rose-500 text-white px-3 py-1 rounded-md text-xs hover:bg-rose-600 transition"
                                         title="Delete Campaign"
                                     >
                                         Delete
                                     </button>
                                 )}
-                                <div className="flex justify-between items-center mb-2 pr-20">
-                                    <h3 className="text-lg font-bold text-[#1C1917]">{c.name}</h3>
-                                    <span className="text-xs text-[#64748B]">{c.startDate?.slice(0, 10)} - {c.endDate?.slice(0, 10)}</span>
-                                </div>
-                                <p className="mb-2 text-[#334155]">{c.description}</p>
+                                {canEditCampaigns && (
+                                    <button
+                                        onClick={(e) => handleEditClick(c, e)}
+                                        className="absolute top-4 right-4 bg-[#0F766E] text-white px-3 py-1 rounded-md text-xs hover:bg-[#0D5B54] transition"
+                                        title="Edit Campaign"
+                                    >
+                                        Edit
+                                    </button>
+                                )}
+                                <h3 className="text-lg font-bold text-[#1C1917] mb-2">{c.name}</h3>
+                                <p className="mb-3 text-[#334155]">{c.description}</p>
+                                <span className="text-sm font-semibold text-[#0F766E] block mb-3">{c.startDate?.slice(0, 10)} - {c.endDate?.slice(0, 10)}</span>
                                 <div className="mb-2">
                                     <span className="font-semibold text-[#0F766E]">${c.raised?.toLocaleString()}</span>
                                     <span className="text-[#64748B]"> / ${c.goal?.toLocaleString()} raised</span>
@@ -122,6 +157,11 @@ export default function CampaignsPage() {
                             campaign={selectedCampaign}
                             donations={donations}
                             onClose={() => setSelectedCampaign(null)}
+                            onDeleted={() => {
+                                setSelectedCampaign(null);
+                                fetchCampaigns();
+                            }}
+                            onEdit={() => handleEditClick(selectedCampaign, {} as any)}
                         />
                     )}
                 </div>

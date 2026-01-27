@@ -1,8 +1,16 @@
 "use client";
 import React from "react";
+import { getAdminId } from "@/lib/admin-storage";
 
 interface CampaignFormProps {
-    onCreate: (data: {
+    onCreate?: (data: {
+        name: string;
+        goal: number;
+        startDate: string;
+        endDate: string;
+        description: string;
+    }) => void;
+    onEdit?: (id: number, data: {
         name: string;
         goal: number;
         startDate: string;
@@ -10,15 +18,24 @@ interface CampaignFormProps {
         description: string;
     }) => void;
     onClose: () => void;
+    campaign?: {
+        id: number;
+        name: string;
+        goal: number;
+        startDate: string;
+        endDate: string;
+        description: string;
+    } | null;
 }
 
-export default function CampaignForm({ onCreate, onClose }: CampaignFormProps) {
+export default function CampaignForm({ onCreate, onEdit, onClose, campaign }: CampaignFormProps) {
+    const isEdit = !!campaign;
     const [form, setForm] = React.useState({
-        name: "",
-        goal: "",
-        startDate: "",
-        endDate: "",
-        description: ""
+        name: campaign?.name || "",
+        goal: campaign?.goal?.toString() || "",
+        startDate: campaign?.startDate?.split('T')[0] || "",
+        endDate: campaign?.endDate?.split('T')[0] || "",
+        description: campaign?.description || ""
     });
 
     function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
@@ -41,14 +58,38 @@ export default function CampaignForm({ onCreate, onClose }: CampaignFormProps) {
                 endDate: new Date(form.endDate).toISOString(),
                 description: form.description
             };
-            const res = await fetch("/api/campaigns", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
-            });
-            if (!res.ok) throw new Error("Failed to create campaign");
+
+            if (isEdit && campaign?.id) {
+                // Edit campaign
+                const adminId = getAdminId();
+                const res = await fetch("/api/campaigns", {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        'x-admin-id': adminId?.toString() || ''
+                    },
+                    body: JSON.stringify({ id: campaign.id, ...data })
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || "Failed to update campaign");
+                }
+                if (onEdit) {
+                    onEdit(campaign.id, data);
+                }
+            } else {
+                // Create campaign
+                const res = await fetch("/api/campaigns", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                });
+                if (!res.ok) throw new Error("Failed to create campaign");
+                if (onCreate) {
+                    onCreate(data);
+                }
+            }
             setForm({ name: "", goal: "", startDate: "", endDate: "", description: "" });
-            onCreate(data);
             onClose();
         } catch (err: any) {
             setError(err.message);
@@ -67,7 +108,7 @@ export default function CampaignForm({ onCreate, onClose }: CampaignFormProps) {
                 >
                     ×
                 </button>
-                <h2 className="text-xl font-semibold mb-4">Create New Campaign</h2>
+                <h2 className="text-xl font-semibold mb-4">{isEdit ? "Edit Campaign" : "Create New Campaign"}</h2>
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
                     <input
                         name="name"
@@ -114,7 +155,7 @@ export default function CampaignForm({ onCreate, onClose }: CampaignFormProps) {
                         className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition"
                         disabled={loading}
                     >
-                        {loading ? "Creating..." : "Create Campaign"}
+                        {loading ? (isEdit ? "Updating..." : "Creating...") : (isEdit ? "Update Campaign" : "Create Campaign")}
                     </button>
                     {error && <div className="text-red-500">{error}</div>}
                 </form>

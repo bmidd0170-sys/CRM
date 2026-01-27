@@ -46,7 +46,7 @@ export default function Home() {
           <div className="max-w-6xl mx-auto px-8 text-center">
             <h1 className="font-bricolage text-5xl md:text-6xl font-bold mb-6 leading-tight animate-fadeInUp">Streamline Your Donor Management</h1>
             <p className="text-xl md:text-2xl text-[#57534E] max-w-2xl mx-auto mb-10 animate-fadeInUp opacity-80">A complete CRM built for nonprofits. Track donations, manage donor relationships, and grow your impact with tools designed specifically for your mission.</p>
-            <a href="#" className="inline-block bg-[#0F766E] text-white px-10 py-4 rounded-xl font-semibold text-lg shadow-lg hover:bg-[#0D5B54] transition animate-fadeInUp">Get Started Today</a>
+            <button onClick={() => setShowLogin(true)} className="inline-block bg-[#0F766E] text-white px-10 py-4 rounded-xl font-semibold text-lg shadow-lg hover:bg-[#0D5B54] transition animate-fadeInUp">Get Started Today</button>
           </div>
         </section>
 
@@ -83,7 +83,7 @@ export default function Home() {
           <div className="max-w-4xl mx-auto px-8">
             <h2 className="font-bricolage text-4xl md:text-5xl font-bold mb-6">Ready to Transform Your Donor Management?</h2>
             <p className="text-lg md:text-xl mb-10 opacity-95">Join hundreds of nonprofits already using DonorConnect to build stronger relationships and increase their impact.</p>
-            <a href="#" className="inline-block bg-white text-[#0F766E] px-10 py-4 rounded-xl font-semibold text-lg shadow-lg hover:scale-105 transition">Start Your Free Trial</a>
+            <button onClick={() => setShowLogin(true)} className="inline-block bg-white text-[#0F766E] px-10 py-4 rounded-xl font-semibold text-lg shadow-lg hover:scale-105 transition">Start Your Free Trial</button>
           </div>
         </section>
 

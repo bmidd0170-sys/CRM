@@ -163,3 +163,71 @@ export function getAdminId(): number | null {
 export function isSuperAdmin(): boolean {
   return getAdminRole() === 'Super Admin';
 }
+
+/**
+ * Check if admin has permission to perform an action
+ * Super Admins always have full permissions
+ * @param action - Action to perform: 'create', 'read', 'update', 'delete'
+ * @param resource - Resource to act on: 'donors', 'campaigns', 'events', etc.
+ * @returns true if admin has permission
+ */
+export function hasPermission(action: 'create' | 'read' | 'update' | 'delete', resource?: string): boolean {
+  // Super Admins always have all permissions
+  if (isSuperAdmin()) {
+    return true;
+  }
+
+  const restrictions = getAdminRestrictions();
+  
+  // Check for "No Delete" restriction
+  if (action === 'delete' && restrictions.includes('No Delete')) {
+    return false;
+  }
+
+  // Check for "No Edit" restriction (covers both create and update)
+  if ((action === 'create' || action === 'update') && restrictions.includes('No Edit')) {
+    return false;
+  }
+
+  // Check for resource-specific restrictions
+  if (resource && restrictions.includes(resource)) {
+    return false;
+  }
+
+  // Check for combined restrictions (e.g., "No Delete donors")
+  if (resource) {
+    const combinedRestriction = `No ${action.charAt(0).toUpperCase() + action.slice(1)} ${resource}`;
+    if (restrictions.some(r => r.toLowerCase() === combinedRestriction.toLowerCase())) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Check if admin can delete
+ * @param resource - Optional specific resource
+ * @returns true if admin can delete
+ */
+export function canDelete(resource?: string): boolean {
+  return hasPermission('delete', resource);
+}
+
+/**
+ * Check if admin can edit (create or update)
+ * @param resource - Optional specific resource
+ * @returns true if admin can edit
+ */
+export function canEdit(resource?: string): boolean {
+  return hasPermission('update', resource);
+}
+
+/**
+ * Check if admin can create
+ * @param resource - Optional specific resource
+ * @returns true if admin can create
+ */
+export function canCreate(resource?: string): boolean {
+  return hasPermission('create', resource);
+}

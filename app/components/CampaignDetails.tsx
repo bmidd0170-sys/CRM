@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { canDelete, canEdit, getAdminId } from "@/lib/admin-storage";
 
 interface CampaignDetailsProps {
   campaign: {
@@ -21,10 +22,45 @@ interface CampaignDetailsProps {
     status: string;
   }>;
   onClose: () => void;
+  onDeleted?: () => void;
+  onEdit?: () => void;
 }
 
-export default function CampaignDetails({ campaign, donations, onClose }: CampaignDetailsProps) {
+export default function CampaignDetails({ campaign, donations, onClose, onDeleted, onEdit }: CampaignDetailsProps) {
   const campaignDonations = donations.filter(d => d.campaign === campaign.name);
+  const canDeleteCampaigns = canDelete('campaigns');
+  const canEditCampaigns = canEdit('campaigns');
+
+  function handleDelete() {
+    if (!confirm('Are you sure you want to delete this campaign? This will also delete all related donations and events.')) {
+      return;
+    }
+
+    const adminId = getAdminId();
+    fetch(`/api/campaigns?id=${campaign.id}`, {
+      method: 'DELETE',
+      headers: {
+        'x-admin-id': adminId?.toString() || ''
+      }
+    })
+      .then(res => {
+        if (!res.ok) {
+          return res.json().then(err => {
+            throw new Error(err.error || 'Failed to delete campaign');
+          });
+        }
+        return res.json();
+      })
+      .then(() => {
+        onClose();
+        if (onDeleted) onDeleted();
+      })
+      .catch(error => {
+        alert(`Error: ${error.message}`);
+        console.error('Error deleting campaign:', error);
+      });
+  }
+  
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
       <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-2xl relative animate-fadeIn">
@@ -77,6 +113,29 @@ export default function CampaignDetails({ campaign, donations, onClose }: Campai
             </tbody>
           </table>
         </div>
+        {canDeleteCampaigns && (
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <button
+              onClick={handleDelete}
+              className="w-full bg-red-500 text-white px-4 py-2 rounded-md font-medium hover:bg-red-600 transition"
+            >
+              Delete Campaign
+            </button>
+          
+        {canEditCampaigns && (
+          <div className={canDeleteCampaigns ? "mt-2" : "mt-6 pt-4 border-t border-gray-200"}>
+            <button
+              onClick={() => {
+                if (onEdit) onEdit();
+                onClose();
+              }}
+              className="w-full bg-blue-500 text-white px-4 py-2 rounded-md font-medium hover:bg-blue-600 transition"
+            >
+              Edit Campaign
+            </button>
+          </div>
+        )}</div>
+        )}
       </div>
     </div>
   );
