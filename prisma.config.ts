@@ -1,14 +1,2 @@
-import { defineConfig } from '@prisma/config';
-import { config } from 'dotenv';
-
-// Load environment variables from .env file
-config();
-
-export default defineConfig({
-    migrations: {
-        seed: 'node prisma/seed.js',
-    },
-    datasource: {
-        url: process.env.DATABASE_URL!,
-    },
-});
+// This file is intentionally minimal
+// Prisma 7 handles configuration through environment variables and the schema

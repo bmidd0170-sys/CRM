@@ -44,7 +44,7 @@ model Campaign {
   raised      Float      @default(0)
   startDate   DateTime
   endDate     DateTime
-  description String
+  description String?
   donations   Donation[]
   events      Event[]
 }
@@ -53,7 +53,7 @@ model Event {
   id          Int       @id @default(autoincrement())
   name        String
   date        DateTime
-  description String
+  description String?
   image       String?
   campaignId  Int?
   campaign    Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)

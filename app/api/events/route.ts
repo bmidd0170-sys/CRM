@@ -37,10 +37,14 @@ export async function POST(request: Request) {
   try {
     // Check permissions
     const adminId = getAdminIdFromRequest(request);
+    console.log('[Events API] Admin ID from request:', adminId);
     const permission = await verifyPermission(adminId, 'events', 'create');
+    console.log('[Events API] Permission result:', permission);
     if (!permission.authorized) {
+      console.error('[Events API] Permission denied:', permission.error);
       return NextResponse.json({ error: permission.error }, { status: permission.status });
     }
+    console.log('[Events API] Permission granted');
 
     const data = await request.json();
 

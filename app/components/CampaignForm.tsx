@@ -47,7 +47,7 @@ export default function CampaignForm({ onCreate, onEdit, onClose, campaign }: Ca
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
-        if (!form.name || !form.goal || !form.startDate || !form.endDate) return;
+        if (!form.name || !form.goal || !form.startDate || !form.endDate || !form.description) return;
         setLoading(true);
         setError("");
         try {
@@ -79,9 +79,13 @@ export default function CampaignForm({ onCreate, onEdit, onClose, campaign }: Ca
                 }
             } else {
                 // Create campaign
+                const adminId = getAdminId();
                 const res = await fetch("/api/campaigns", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: { 
+                        "Content-Type": "application/json",
+                        'x-admin-id': adminId?.toString() || ''
+                    },
                     body: JSON.stringify(data)
                 });
                 if (!res.ok) throw new Error("Failed to create campaign");

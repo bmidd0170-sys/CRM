@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
+import ProtectedPage from "../components/ProtectedPage";
 import EventForm from "./components/EventForm";
-import { canDelete, canCreate, canEdit, getAdminId } from "@/lib/admin-storage";
+import { canDelete, canCreate, canEdit, getAdminId, handleLogout } from "@/lib/admin-storage";
 
 // Example recipients (could be fetched from API or state)
 const recipientsList = [
@@ -123,15 +124,17 @@ export default function EventsPage() {
     }
 
     return (
-        <div className="flex min-h-screen bg-[#F8FAFC]">
-            <Sidebar active="Events" />
-            <main className="flex-1 min-h-screen ml-[260px]">
-                <div className="bg-white border-b border-[#E2E8F0] px-8 py-5 flex justify-between items-center sticky top-0 z-40 animate-slideInDown">
+        <ProtectedPage screenName="Events">
+            <div className="flex min-h-screen bg-[#F8FAFC]">
+                <Sidebar active="Events" />
+                <main className="flex-1 min-h-screen ml-[260px]">
+                    <div className="bg-white border-b border-[#E2E8F0] px-8 py-5 flex justify-between items-center sticky top-0 z-40 animate-slideInDown">
                     <h1 className="font-bricolage text-2xl font-bold text-[#1C1917]">Events</h1>
+                    <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
                 </div>
                 <div className="p-8">
                     <div className="flex justify-between items-center mb-8">
-                        <h2 className="text-xl font-semibold">Upcoming Events</h2>
+                        <h2 className="text-xl font-semibold text-[#1C1917]">Upcoming Events</h2>
                         {canCreateEvents && (
                             <button
                                 className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition"
@@ -194,6 +197,7 @@ export default function EventsPage() {
                     </div>
                 </div>
             </main>
-        </div>
+            </div>
+        </ProtectedPage>
     );
 }

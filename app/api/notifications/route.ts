@@ -38,10 +38,14 @@ export async function POST(request: Request) {
   try {
     // Check permissions
     const adminId = getAdminIdFromRequest(request);
+    console.log('[Notifications API] Admin ID from request:', adminId);
     const permission = await verifyPermission(adminId, 'notifications', 'create');
+    console.log('[Notifications API] Permission result:', permission);
     if (!permission.authorized) {
+      console.error('[Notifications API] Permission denied:', permission.error);
       return NextResponse.json({ error: permission.error }, { status: permission.status });
     }
+    console.log('[Notifications API] Permission granted');
 
     const data = await request.json();
 

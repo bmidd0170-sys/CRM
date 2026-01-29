@@ -3,10 +3,12 @@
 import React, { useEffect, useState } from "react";
 
 import Sidebar from "../components/Sidebar";
-import { handleLogout } from "@/lib/admin-storage";
+import { handleLogout, getAdminData } from "@/lib/admin-storage";
 
 export default function DonationsPage() {
     const [donations, setDonations] = useState<any[]>([]);
+    const [adminName, setAdminName] = useState("");
+    const [adminId, setAdminId] = useState("");
 
     // Filter states
     const [date, setDate] = useState("");
@@ -14,6 +16,15 @@ export default function DonationsPage() {
     const [status, setStatus] = useState("");
     const [donor, setDonor] = useState("");
     const [method, setMethod] = useState("");
+
+    useEffect(() => {
+        // Get logged-in admin data
+        const admin = getAdminData();
+        if (admin) {
+            setAdminName(admin.name);
+            setAdminId(admin.id.toString());
+        }
+    }, []);
 
     // Fetch donations from API
     useEffect(() => {
@@ -47,13 +58,13 @@ export default function DonationsPage() {
                 <div className="bg-white border-b border-[#E2E8F0] px-8 py-5 flex justify-between items-center sticky top-0 z-40 animate-slideInDown">
                     <h1 className="font-bricolage text-2xl font-bold text-[#1C1917]">Donations</h1>
                     <div className="flex items-center gap-6">
-                        <span className="text-[#1C1917] font-semibold">Sarah Johnson</span>
-                        <span className="text-[#57534E] text-base">ID: 12341</span>
+                        <span className="text-[#1C1917] font-semibold">{adminName || "Loading..."}</span>
+                        <span className="text-[#57534E] text-base">ID: {adminId || "—"}</span>
                         <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
                     </div>
                 </div>
                 <div className="p-8">
-                    <h2 className="text-xl font-semibold mb-4">All Donations</h2>
+                    <h2 className="text-xl font-semibold mb-4 text-[#1C1917]">All Donations</h2>
                     {/* Filters */}
                     <div className="flex flex-wrap gap-4 mb-6">
                         <input

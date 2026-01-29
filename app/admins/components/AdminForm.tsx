@@ -1,4 +1,6 @@
+"use client";
 import React, { useState } from "react";
+import { getAdminId } from "@/lib/admin-storage";
 
 interface AdminFormProps {
   onCreated?: (data?: {
@@ -37,6 +39,8 @@ export default function AdminForm({ onCreated }: AdminFormProps) {
       if (form.password !== form.confirmPassword) {
         throw new Error("Passwords do not match");
       }
+      const adminId = getAdminId();
+      console.log('Current Admin ID:', adminId);
       const data = {
         name: form.name,
         email: form.email,
@@ -46,15 +50,36 @@ export default function AdminForm({ onCreated }: AdminFormProps) {
         organizationName: form.organizationName || 'Helping Hands',
         password: form.password
       };
+      console.log('Creating admin with data:', { ...data, password: '[HIDDEN]' });
       const res = await fetch("/api/admins", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          'x-admin-id': adminId?.toString() || ''
+        },
         body: JSON.stringify(data)
       });
-      if (!res.ok) throw new Error("Failed to create admin");
+      console.log('Response status:', res.status);
+      if (!res.ok) {
+        const err = await res.json();
+        console.error('Admin creation failed:', err);
+        throw new Error(err.error || "Failed to create admin");
+      }
+      const result = await res.json();
+      console.log('Admin created successfully:', result);
+      
+      // Reset form
       setForm({ name: "", email: "", role: "Admin", restrictions: "", online: false, organizationName: "", password: "", confirmPassword: "" });
-      if (onCreated) onCreated(data);
+      
+      // Call the onCreated callback to refresh the parent component
+      if (onCreated) {
+        onCreated(data);
+      }
+      
+      // Show success message
+      alert('Admin created successfully!');
     } catch (err: any) {
+      console.error('Admin creation error:', err);
       setError(err.message);
     } finally {
       setLoading(false);

@@ -101,6 +101,14 @@ export function getAdminField(field: keyof AdminData): any {
 }
 
 /**
+ * Update admin name when switching accounts
+ * @param name - The new admin name
+ */
+export function updateAdminName(name: string): void {
+  updateAdminField('name', name);
+}
+
+/**
  * Get admin name
  * @returns Admin name or empty string
  */
@@ -161,7 +169,8 @@ export function getAdminId(): number | null {
  * @returns true if admin is a Super Admin
  */
 export function isSuperAdmin(): boolean {
-  return getAdminRole() === 'Super Admin';
+  const role = (getAdminRole() || '').toLowerCase().replace(/\s+/g, '');
+  return role === 'superadmin';
 }
 
 /**
@@ -230,4 +239,51 @@ export function canEdit(resource?: string): boolean {
  */
 export function canCreate(resource?: string): boolean {
   return hasPermission('create', resource);
+}
+/**
+ * Check if admin can access a specific screen/page
+ * @param screenName - Name of the screen (e.g., 'Donors', 'Reports', 'Events', 'Notifications')
+ * @returns true if admin can access the screen
+ */
+export function canAccessScreen(screenName: string): boolean {
+  // Super Admins always have access to all screens
+  if (isSuperAdmin()) {
+    return true;
+  }
+
+  const restrictions = getAdminRestrictions();
+  const screenLower = screenName.toLowerCase();
+
+  // Check for screen-specific restrictions
+  const restrictionMappings: Record<string, string[]> = {
+    'Donors': ['No Edit Donors'],
+    'Reports': ['No Access Reports'],
+    'Events': ['No Manage Events'],
+    'Notifications': ['No Manage Notifications'],
+    'Admins': ['No Manage Admins'],
+    'Settings': ['No Manage Admins']
+  };
+
+  const screenRestrictions = restrictionMappings[screenName] || [];
+  
+  // If any restriction applies to this screen, deny access
+  if (screenRestrictions.some(r => restrictions.includes(r))) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Get accessible screens for current admin
+ * @returns Array of accessible screen names
+ */
+export function getAccessibleScreens(): string[] {
+  const allScreens = ['Dashboard', 'Donors', 'Donations', 'Campaigns', 'Events', 'Reports', 'Notifications', 'Settings'];
+  
+  if (isSuperAdmin()) {
+    return [...allScreens, 'Admins', 'AI policy page'];
+  }
+
+  return allScreens.filter(screen => canAccessScreen(screen));
 }

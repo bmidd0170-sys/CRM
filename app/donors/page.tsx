@@ -2,9 +2,10 @@
 import React, { useEffect, useState } from "react";
 
 import Sidebar from "../components/Sidebar";
+import ProtectedPage from "../components/ProtectedPage";
 import DonorStats from "../components/DonorStats";
 import DonorForm from "./components/DonorForm";
-import { handleLogout, canDelete, canEdit, getAdminId } from "@/lib/admin-storage";
+import { handleLogout, canDelete, canEdit, getAdminId, getAdminData } from "@/lib/admin-storage";
 
 export default function DonorsPage() {
     type Donor = {
@@ -25,10 +26,19 @@ export default function DonorsPage() {
     const [showForm, setShowForm] = useState(false);
     const [canDeleteDonors, setCanDeleteDonors] = useState(false);
     const [canEditDonors, setCanEditDonors] = useState(false);
+    const [adminName, setAdminName] = useState("");
+    const [adminId, setAdminId] = useState("");
 
     useEffect(() => {
         setCanDeleteDonors(canDelete('donors'));
         setCanEditDonors(canEdit('donors'));
+        
+        // Get logged-in admin data
+        const admin = getAdminData();
+        if (admin) {
+            setAdminName(admin.name);
+            setAdminId(admin.id.toString());
+        }
     }, []);
 
     function fetchDonors() {
@@ -122,15 +132,16 @@ export default function DonorsPage() {
     }
 
     return (
-        <div className="flex min-h-screen bg-[#F8FAFC]">
-            <Sidebar active="Donors" />
-            <main className="flex-1 min-h-screen ml-[260px]">
-                {/* Top Bar */}
-                <div className="bg-white border-b border-[#E2E8F0] px-8 py-5 flex justify-between items-center sticky top-0 z-40 animate-slideInDown">
-                    <h1 className="font-bricolage text-2xl font-bold text-[#1C1917]">Donors</h1>
-                    <div className="flex items-center gap-6">
-                        <span className="text-[#1C1917] font-semibold">Sarah Johnson</span>
-                        <span className="text-[#57534E] text-base">ID: 12341</span>
+        <ProtectedPage screenName="Donors">
+            <div className="flex min-h-screen bg-[#F8FAFC]">
+                <Sidebar active="Donors" />
+                <main className="flex-1 min-h-screen ml-[260px]">
+                    {/* Top Bar */}
+                    <div className="bg-white border-b border-[#E2E8F0] px-8 py-5 flex justify-between items-center sticky top-0 z-40 animate-slideInDown">
+                        <h1 className="font-bricolage text-2xl font-bold text-[#1C1917]">Donors</h1>
+                        <div className="flex items-center gap-6">
+                            <span className="text-[#1C1917] font-semibold">{adminName || "Loading..."}</span>
+                        <span className="text-[#57534E] text-base">ID: {adminId || "—"}</span>
                         <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
                     </div>
                 </div>
@@ -315,6 +326,7 @@ export default function DonorsPage() {
                     }}
                 />
             )}
-        </div>
+            </div>
+        </ProtectedPage>
     );
 }

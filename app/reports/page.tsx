@@ -1,6 +1,8 @@
 "use client";
 import React from "react";
 import Sidebar from "../components/Sidebar";
+import ProtectedPage from "../components/ProtectedPage";
+import { handleLogout } from "@/lib/admin-storage";
 
 // Example donor data for reports
 const donors = [
@@ -13,11 +15,13 @@ const donors = [
 
 export default function ReportsPage() {
     return (
-        <div className="flex min-h-screen bg-[#F8FAFC]">
-            <Sidebar active="Reports" />
-            <main className="flex-1 min-h-screen ml-[260px]">
+        <ProtectedPage screenName="Reports">
+            <div className="flex min-h-screen bg-[#F8FAFC]">
+                <Sidebar active="Reports" />
+                <main className="flex-1 min-h-screen ml-[260px]">
                 <div className="bg-white border-b border-[#E2E8F0] px-8 py-5 flex justify-between items-center sticky top-0 z-40 animate-slideInDown">
                     <h1 className="font-bricolage text-2xl font-bold text-[#1C1917]">Reports</h1>
+                    <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
                 </div>
                 <div className="p-8">
                     <h2 className="text-xl font-semibold text-[#1C1917] mb-6">Donor Follow-Up & Actions</h2>
@@ -73,6 +77,7 @@ export default function ReportsPage() {
                     </div>
                 </div>
             </main>
-        </div>
+            </div>
+        </ProtectedPage>
     );
 }

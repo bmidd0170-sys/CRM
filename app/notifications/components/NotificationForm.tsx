@@ -1,4 +1,5 @@
 import React, { useState, ChangeEvent } from "react";
+import { getAdminId } from "@/lib/admin-storage";
 
 interface NotificationFormProps {
   onCreated?: (data?: {
@@ -45,9 +46,13 @@ export default function NotificationForm({ onCreated }: NotificationFormProps) {
         date: new Date(form.date).toISOString(),
         read: form.read
       };
+      const adminId = getAdminId();
       const res = await fetch("/api/notifications", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          'x-admin-id': adminId?.toString() || ''
+        },
         body: JSON.stringify(data)
       });
       if (!res.ok) throw new Error("Failed to create notification");

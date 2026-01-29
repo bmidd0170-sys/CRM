@@ -67,9 +67,13 @@ export default function EventForm({ onCreate, onClose, event }: EventFormProps) 
         return;
       }
       
+      const adminId = getAdminId();
       const res = await fetch("/api/events", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          'x-admin-id': adminId?.toString() || ''
+        },
         body: JSON.stringify(data)
       });
       if (!res.ok) {

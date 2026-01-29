@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { getAdminId } from "@/lib/admin-storage";
 
 export default function CampaignForm({ onCreate = () => { }, onClose }: { onCreate?: () => void; onClose: () => void }) {
   const [form, setForm] = useState({
@@ -17,26 +18,45 @@ export default function CampaignForm({ onCreate = () => { }, onClose }: { onCrea
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.name || !form.goal || !form.startDate || !form.endDate) return;
+    if (!form.name || !form.goal || !form.startDate || !form.endDate || !form.description) return;
     setLoading(true);
     setError("");
     try {
+      const adminId = getAdminId();
+      console.log('[CampaignForm] Admin ID from storage:', adminId);
+      const startDate = new Date(form.startDate).toISOString();
+      const endDate = new Date(form.endDate).toISOString();
+      console.log('[CampaignForm] Form data:', form);
+      console.log('[CampaignForm] Dates:', { startDate, endDate });
+      
+      const payload = {
+        name: form.name,
+        goal: Number(form.goal),
+        startDate: startDate,
+        endDate: endDate,
+        description: form.description
+      };
+      console.log('[CampaignForm] Sending payload:', payload);
+      
       const res = await fetch("/api/campaigns", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name,
-          goal: Number(form.goal),
-          startDate: new Date(form.startDate),
-          endDate: new Date(form.endDate),
-          description: form.description
-        })
+        headers: { 
+          "Content-Type": "application/json",
+          'x-admin-id': adminId?.toString() || ''
+        },
+        body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error("Failed to create campaign");
+      console.log('[CampaignForm] Response status:', res.status);
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error('[CampaignForm] Error response:', errorData);
+        throw new Error(errorData.error || "Failed to create campaign");
+      }
       setForm({ name: "", goal: "", startDate: "", endDate: "", description: "" });
       onCreate();
       onClose();
     } catch (err: any) {
+      console.error('[CampaignForm] Error:', err);
       setError(err.message);
     } finally {
       setLoading(false);

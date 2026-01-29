@@ -56,18 +56,31 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    // Check permissions
-    const adminId = getAdminIdFromRequest(request);
-    const permission = await verifyPermission(adminId, 'admins', 'create');
-    if (!permission.authorized) {
-      return NextResponse.json({ error: permission.error }, { status: permission.status });
-    }
-
     const data = await request.json();
+    console.log('[API] Received data:', { ...data, password: '[HIDDEN]' });
+
+    // Check if this is the first admin (allow without authentication for initial setup)
+    const adminCount = await prisma.admin.count();
+    console.log('[API] Current admin count:', adminCount);
+    
+    // If there are existing admins, require authentication
+    if (adminCount > 0) {
+      const adminId = getAdminIdFromRequest(request);
+      console.log('[API] Creating admin - Admin ID from request:', adminId);
+      const permission = await verifyPermission(adminId, 'admins', 'create');
+      console.log('[API] Permission check result:', permission);
+      if (!permission.authorized) {
+        console.error('[API] Permission denied:', permission.error);
+        return NextResponse.json({ error: permission.error }, { status: permission.status });
+      }
+    } else {
+      console.log('[API] First admin creation - skipping authentication');
+    }
 
     // Validate input data
     const validation = validateData(adminCreateSchema, data);
     if (!validation.success) {
+      console.error('[API] Validation failed:', formatValidationErrors(validation.error));
       return NextResponse.json(
         {
           error: 'Validation failed',
@@ -82,6 +95,7 @@ export async function POST(request: Request) {
     // Check if email already exists
     const emailExists = await checkEmailExists(adminData.email, 'admin');
     if (emailExists) {
+      console.error('[API] Email already exists:', adminData.email);
       return NextResponse.json(
         { error: 'An admin with this email already exists' },
         { status: 409 }
@@ -89,6 +103,7 @@ export async function POST(request: Request) {
     }
 
     const passwordHash = hashPassword(password);
+    console.log('[API] Password hashed, creating admin in database...');
 
     const adminCreateData: Prisma.AdminCreateInput = {
       ...adminData,
@@ -100,6 +115,7 @@ export async function POST(request: Request) {
       data: adminCreateData,
       select: adminSelect
     });
+    console.log('[API] Admin created successfully in database:', newAdmin);
 
     return NextResponse.json({ admin: newAdmin, data: newAdmin }, { status: 201 });
   } catch (error) {

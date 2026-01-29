@@ -97,10 +97,16 @@ export async function checkIsSuperAdmin(adminId: number): Promise<boolean> {
 export function getAdminIdFromRequest(request: Request): number | null {
   try {
     const adminIdHeader = request.headers.get('x-admin-id');
-    if (!adminIdHeader) return null;
+    console.log('[getAdminIdFromRequest] x-admin-id header value:', adminIdHeader);
+    if (!adminIdHeader) {
+      console.log('[getAdminIdFromRequest] No x-admin-id header found');
+      return null;
+    }
     const adminId = parseInt(adminIdHeader);
+    console.log('[getAdminIdFromRequest] Parsed admin ID:', adminId);
     return isNaN(adminId) ? null : adminId;
-  } catch {
+  } catch (error) {
+    console.error('[getAdminIdFromRequest] Error parsing admin ID:', error);
     return null;
   }
 }
@@ -133,14 +139,20 @@ export async function checkPermission(
   resource: PermissionResource,
   action: PermissionAction
 ): Promise<{ allowed: boolean; reason?: string }> {
+  console.log(`[Permission Check] Admin ID: ${adminId}, Resource: ${resource}, Action: ${action}`);
+  
   const admin = await getAdminWithRestrictions(adminId);
   
   if (!admin) {
+    console.log(`[Permission Check] Admin not found for ID: ${adminId}`);
     return { allowed: false, reason: 'Admin not found' };
   }
 
+  console.log(`[Permission Check] Admin found:`, { id: admin.id, role: admin.role, restrictions: admin.restrictions });
+
   // Super Admins have all permissions
   if (admin.role === 'Super Admin') {
+    console.log(`[Permission Check] Super Admin - access granted`);
     return { allowed: true };
   }
 
@@ -149,26 +161,31 @@ export async function checkPermission(
   
   // Check for "No Delete" restriction
   if (action === 'delete' && restrictions.includes('No Delete')) {
+    console.log(`[Permission Check] Blocked by "No Delete" restriction`);
     return { allowed: false, reason: 'Admin does not have delete permissions' };
   }
 
   // Check for "No Edit" restriction (covers both create and update)
   if ((action === 'create' || action === 'update') && restrictions.includes('No Edit')) {
+    console.log(`[Permission Check] Blocked by "No Edit" restriction`);
     return { allowed: false, reason: 'Admin does not have edit permissions' };
   }
 
   // Check for resource-specific restrictions (e.g., "donors", "campaigns", "events")
   if (restrictions.includes(resource)) {
+    console.log(`[Permission Check] Blocked by resource restriction: ${resource}`);
     return { allowed: false, reason: `Admin does not have access to ${resource}` };
   }
 
   // Check for combined restrictions (e.g., "No Delete donors")
   const combinedRestriction = `No ${action.charAt(0).toUpperCase() + action.slice(1)} ${resource}`;
   if (restrictions.some(r => r.toLowerCase() === combinedRestriction.toLowerCase())) {
+    console.log(`[Permission Check] Blocked by combined restriction: ${combinedRestriction}`);
     return { allowed: false, reason: `Admin cannot ${action} ${resource}` };
   }
 
   // If no restrictions matched, allow the action
+  console.log(`[Permission Check] Access granted - no restrictions matched`);
   return { allowed: true };
 }
 
@@ -180,7 +197,10 @@ export async function verifyPermission(
   resource: PermissionResource,
   action: PermissionAction
 ): Promise<{ authorized: true } | { authorized: false; status: number; error: string }> {
+  console.log(`[Verify Permission] Called with adminId: ${adminId}, resource: ${resource}, action: ${action}`);
+  
   if (!adminId) {
+    console.log(`[Verify Permission] No admin ID provided - returning 401`);
     return {
       authorized: false,
       status: 401,
@@ -191,6 +211,7 @@ export async function verifyPermission(
   const permission = await checkPermission(adminId, resource, action);
   
   if (!permission.allowed) {
+    console.log(`[Verify Permission] Permission denied - returning 403`);
     return {
       authorized: false,
       status: 403,
@@ -198,5 +219,6 @@ export async function verifyPermission(
     };
   }
 
+  console.log(`[Verify Permission] Permission granted`);
   return { authorized: true };
 }

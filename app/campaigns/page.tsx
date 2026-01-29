@@ -5,7 +5,7 @@ import Sidebar from "../components/Sidebar";
 import CampaignForm from "../components/CampaignForm";
 import CampaignDetails from "../components/CampaignDetails";
 import { donations } from "./donationsData";
-import { canDelete, canCreate, canEdit, getAdminId } from "@/lib/admin-storage";
+import { canDelete, canCreate, canEdit, getAdminId, handleLogout, getAdminData } from "@/lib/admin-storage";
 
 export default function CampaignsPage() {
     const [campaigns, setCampaigns] = useState<any[]>([]);
@@ -87,10 +87,11 @@ export default function CampaignsPage() {
             <main className="flex-1 min-h-screen ml-[260px]">
                 <div className="bg-white border-b border-[#E2E8F0] px-8 py-5 flex justify-between items-center sticky top-0 z-40 animate-slideInDown">
                     <h1 className="font-bricolage text-2xl font-bold text-[#1C1917]">Campaigns</h1>
+                    <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
                 </div>
                 <div className="p-8">
                     <div className="flex justify-between items-center mb-8">
-                        <h2 className="text-xl font-semibold">Active Campaigns</h2>
+                        <h2 className="text-xl font-semibold text-[#1C1917]">Active Campaigns</h2>
                         {canCreateCampaigns && (
                             <button
                                 className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition"

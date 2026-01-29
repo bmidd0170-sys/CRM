@@ -34,19 +34,37 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  console.log('========== CAMPAIGNS POST REQUEST RECEIVED ==========');
   try {
     // Check permissions
     const adminId = getAdminIdFromRequest(request);
+    console.log('[Campaigns API] Admin ID from request:', adminId);
     const permission = await verifyPermission(adminId, 'campaigns', 'create');
+    console.log('[Campaigns API] Permission result:', permission);
     if (!permission.authorized) {
+      console.error('[Campaigns API] Permission denied:', permission.error);
       return NextResponse.json({ error: permission.error }, { status: permission.status });
     }
+    console.log('[Campaigns API] Permission granted');
 
     const data = await request.json();
+    console.log('[Campaigns API] Received data:', JSON.stringify(data, null, 2));
+    console.log('[Campaigns API] Description field:', {
+      exists: 'description' in data,
+      value: data.description,
+      type: typeof data.description,
+      length: data.description?.length
+    });
 
     // Validate input data
     const validation = validateData(campaignSchema, data);
+    console.log('[Campaigns API] Validation result:', {
+      success: validation.success,
+      error: validation.error,
+      data: validation.data
+    });
     if (!validation.success) {
+      console.error('[Campaigns API] Validation failed:', formatValidationErrors(validation.error));
       return NextResponse.json(
         {
           error: 'Validation failed',

@@ -32,7 +32,7 @@ export function AdminList({ admins, onSelect }: AdminListProps) {
                         <div className="text-xs text-[#64748B] mt-1">Role: {admin.role}</div>
                     </div>
                     <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
-                        {admin.restrictions.length === 0 ? (
+                        {(!admin.restrictions || admin.restrictions.length === 0) ? (
                             <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#A7F3D0] text-[#047857]">No Restrictions</span>
                         ) : (
                             admin.restrictions.map(r => (
@@ -67,11 +67,11 @@ export function AdminProfile({ admin, onClose }: AdminProfileProps) {
                 <div className="mb-2"><span className="font-semibold">Email:</span> {admin.email}</div>
                 <div className="mb-2"><span className="font-semibold">Role:</span> {admin.role}</div>
                 <div className="mb-2"><span className="font-semibold">Online:</span> {admin.online ? 'Yes' : 'No'}</div>
-                <div className="mb-2"><span className="font-semibold">Restrictions:</span> {admin.restrictions.length === 0 ? 'None' : admin.restrictions.join(', ')}</div>
+                <div className="mb-2"><span className="font-semibold">Restrictions:</span> {!admin.restrictions || admin.restrictions.length === 0 ? 'None' : admin.restrictions.join(', ')}</div>
                 <div className="mt-4">
                     <h3 className="font-semibold mb-2">Recent Changes</h3>
                     <ul className="list-disc pl-5 text-sm">
-                        {admin.changes.length === 0 ? (
+                        {!admin.changes || admin.changes.length === 0 ? (
                             <li>No changes recorded.</li>
                         ) : (
                             admin.changes.map((change, idx) => <li key={idx}>{change}</li>)

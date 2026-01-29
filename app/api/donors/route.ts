@@ -37,10 +37,14 @@ export async function POST(request: Request) {
   try {
     // Check permissions
     const adminId = getAdminIdFromRequest(request);
+    console.log('[Donors API] Admin ID from request:', adminId);
     const permission = await verifyPermission(adminId, 'donors', 'create');
+    console.log('[Donors API] Permission result:', permission);
     if (!permission.authorized) {
+      console.error('[Donors API] Permission denied:', permission.error);
       return NextResponse.json({ error: permission.error }, { status: permission.status });
     }
+    console.log('[Donors API] Permission granted');
 
     const data = await request.json();
 

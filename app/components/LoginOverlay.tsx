@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { storeAdminData, updateAdminName } from "@/lib/admin-storage";
 import { clearTemporaryData } from "@/lib/temp-data-utils";
 
 interface LoginOverlayProps {
@@ -61,7 +62,9 @@ export default function LoginOverlay({ show, onClose }: LoginOverlayProps) {
 
                                     // Store admin data in sessionStorage for use in dashboard
                                     if (loginData.admin) {
-                                        sessionStorage.setItem('currentAdmin', JSON.stringify(loginData.admin));
+                                        storeAdminData(loginData.admin);
+                                        // Ensure the name is set to the current user's name
+                                        updateAdminName(loginData.admin.name);
                                     }
 
                                     // Clear temporary data after successful login
@@ -112,7 +115,9 @@ export default function LoginOverlay({ show, onClose }: LoginOverlayProps) {
                                     // Store admin data in sessionStorage for use in dashboard
                                     if (adminData.admin || adminData.data) {
                                         const admin = adminData.admin || adminData.data;
-                                        sessionStorage.setItem('currentAdmin', JSON.stringify(admin));
+                                        storeAdminData(admin);
+                                        // Ensure the name is set to the current user's name
+                                        updateAdminName(admin.name);
                                     }
 
                                     // Clear temporary data after successful registration

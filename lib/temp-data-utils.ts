@@ -9,9 +9,17 @@
  */
 export async function clearTemporaryData() {
   try {
+    // Preserve the currentAdmin data before clearing
+    const currentAdmin = sessionStorage.getItem('currentAdmin');
+    
     // Clear client-side storage
     localStorage.clear();
     sessionStorage.clear();
+    
+    // Restore the currentAdmin data after clearing
+    if (currentAdmin) {
+      sessionStorage.setItem('currentAdmin', currentAdmin);
+    }
 
     // Call backend API to clear server-side temporary data
     const response = await fetch('/api/clear-temp-data', {
