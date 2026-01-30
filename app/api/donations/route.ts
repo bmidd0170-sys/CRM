@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma, checkCampaignExists, checkDonorExists, updateDonorTotal, updateCampaignRaised, getAdminIdFromRequest, getAdminOrganization, verifyPermission } from '@/lib/db';
 import { donationSchema, validateData, formatValidationErrors } from '@/lib/validators';
+import { createNotification } from '@/lib/notification-helper';
 
 export async function GET(request: Request) {
   try {
@@ -127,7 +128,9 @@ export async function POST(request: Request) {
         where: { id: validation.data.donorId },
         data: {
           total: donorTotal._sum.amount || 0,
-          lastDonation: donationData.date
+          lastDonation: donationData.date,
+          lastContacted: new Date(),
+          status: 'Active'
         }
       });
 
@@ -145,6 +148,14 @@ export async function POST(request: Request) {
       }
 
       return donation;
+    });
+
+    // Create notification
+    await createNotification({
+      type: 'admin',
+      message: `New donation of $${newDonation.amount} recorded from ${newDonation.donor.name}`,
+      organizationName,
+      adminId
     });
 
     return NextResponse.json(newDonation, { status: 201 });
@@ -262,6 +273,14 @@ export async function PUT(request: Request) {
       return donation;
     });
 
+    // Create notification
+    await createNotification({
+      type: 'admin',
+      message: `Donation of $${updatedDonation.amount} updated`,
+      organizationName,
+      adminId
+    });
+
     return NextResponse.json(updatedDonation);
   } catch (error) {
     console.error('Donation update error:', error);
@@ -320,6 +339,14 @@ export async function DELETE(request: Request) {
       if (existingDonation.campaignId) {
         await updateCampaignRaised(existingDonation.campaignId);
       }
+    });
+
+    // Create notification
+    await createNotification({
+      type: 'admin',
+      message: `Donation of $${existingDonation.amount} deleted`,
+      organizationName,
+      adminId
     });
 
     return NextResponse.json({ message: 'Donation deleted successfully' });

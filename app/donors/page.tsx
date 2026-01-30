@@ -28,6 +28,7 @@ export default function DonorsPage() {
     const [canEditDonors, setCanEditDonors] = useState(false);
     const [adminName, setAdminName] = useState("");
     const [adminId, setAdminId] = useState("");
+    const [isMarkingLapsed, setIsMarkingLapsed] = useState(false);
 
     useEffect(() => {
         setCanDeleteDonors(canDelete('donors'));
@@ -66,6 +67,38 @@ export default function DonorsPage() {
     useEffect(() => {
         fetchDonors();
     }, []);
+
+    async function markLapsedDonors() {
+        if (!confirm('Mark all donors without donations in the last 12 months as "Lapsed"?')) {
+            return;
+        }
+        
+        setIsMarkingLapsed(true);
+        try {
+            const adminId = getAdminId();
+            const res = await fetch('/api/donors/mark-lapsed', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-admin-id': adminId?.toString() || ''
+                },
+                body: JSON.stringify({ monthsThreshold: 12 })
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Failed to mark lapsed donors');
+            }
+
+            const result = await res.json();
+            alert(`${result.count} donors marked as lapsed`);
+            fetchDonors(); // Refresh the list
+        } catch (error) {
+            alert(`Error: ${error instanceof Error ? error.message : 'Failed to mark lapsed donors'}`);
+        } finally {
+            setIsMarkingLapsed(false);
+        }
+    }
 
     function handleDelete(donorId: number, event: React.MouseEvent) {
         event.stopPropagation();
@@ -146,14 +179,15 @@ export default function DonorsPage() {
                         <h1 className="font-bricolage text-2xl font-bold text-[#1C1917]">Donors</h1>
                         <div className="flex items-center gap-6">
                             <span className="text-[#1C1917] font-semibold">{adminName || "Loading..."}</span>
-                            <span className="text-[#57534E] text-base">ID: {adminId || "—"}</span>
                             <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
                         </div>
                     </div>
                     {/* Content */}
                     <div className="p-8">
                         <section className="mb-10 animate-fadeInUp">
-                            <h2 className="font-bricolage text-xl font-semibold text-[#1C1917] mb-4">All Donors</h2>
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="font-bricolage text-xl font-semibold text-[#1C1917]">All Donors</h2>
+                            </div>
                             <div className="flex gap-4 mb-6">
                                 <input
                                     type="text"
@@ -171,6 +205,7 @@ export default function DonorsPage() {
                                     <option value="All">All Status</option>
                                     <option value="Active">Active</option>
                                     <option value="Inactive">Inactive</option>
+                                    <option value="Lapsed">Lapsed</option>
                                 </select>
                                 {/* Type Filter */}
                                 <select
@@ -190,6 +225,27 @@ export default function DonorsPage() {
                                     <option value="Latest">Latest Donation</option>
                                     <option value="Active">Status</option>
                                 </select>
+                                {canEditDonors && (
+                                    <button
+                                        onClick={markLapsedDonors}
+                                        disabled={isMarkingLapsed}
+                                        className="bg-[#F97316] text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-[#EA580C] transition disabled:opacity-50"
+                                        title="Mark donors without donations in 12 months as lapsed"
+                                    >
+                                        {isMarkingLapsed ? 'Updating...' : 'Update Lapsed'}
+                                    </button>
+                                )}
+                                {canEditDonors && (
+                                    <button
+                                        onClick={() => {
+                                            setEditingDonor(null);
+                                            setShowForm(true);
+                                        }}
+                                        className="bg-[#0F766E] text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-[#0D5B54] transition"
+                                    >
+                                        + Add Donor
+                                    </button>
+                                )}
                             </div>
                             <DonorStats donors={filteredDonors} isLapsed={isLapsed} />
                             <div className="bg-white border border-[#E2E8F0] rounded-xl overflow-hidden">
@@ -217,7 +273,13 @@ export default function DonorsPage() {
                                                 <td className="py-4 px-6 text-[#1C1917]">{donor.lastDonation}</td>
                                                 <td className="py-4 px-6 flex gap-2 flex-wrap">
                                                     {/* Status tag */}
-                                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${donor.status === "Active" ? "bg-[#D1FAE5] text-[#065F46]" : "bg-[#FDE68A] text-[#92400E]"}`}>
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                                        donor.status === "Active" 
+                                                            ? "bg-[#D1FAE5] text-[#065F46]"
+                                                            : donor.status === "Lapsed"
+                                                            ? "bg-[#E0E7FF] text-[#3730A3]"
+                                                            : "bg-[#FDE68A] text-[#92400E]"
+                                                    }`}>
                                                         {donor.status}
                                                     </span>
                                                     {/* Major tag */}

@@ -97,7 +97,6 @@ export default function Dashboard() {
                     <h1 className="font-bricolage text-2xl font-bold text-[#1C1917]">Dashboard</h1>
                     <div className="flex items-center gap-6">
                         <span className="text-[#1C1917] font-semibold">{adminName || "Loading..."}</span>
-                        <span className="text-[#57534E] text-base">ID: {adminId || "—"}</span>
                         <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
                     </div>
                 </div>

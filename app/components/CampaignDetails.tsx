@@ -14,12 +14,15 @@ interface CampaignDetailsProps {
   };
   donations: Array<{
     id: number;
-    donor: string;
     amount: number;
     date: string;
-    method: string;
-    campaign: string;
-    status: string;
+    campaignId?: number;
+    donor?: {
+      id: number;
+      name: string;
+      email: string;
+    };
+    donorId?: number;
   }>;
   onClose: () => void;
   onDeleted?: () => void;
@@ -27,7 +30,7 @@ interface CampaignDetailsProps {
 }
 
 export default function CampaignDetails({ campaign, donations, onClose, onDeleted, onEdit }: CampaignDetailsProps) {
-  const campaignDonations = donations.filter(d => d.campaign === campaign.name);
+  const campaignDonations = donations.filter(d => d.campaignId === campaign.id);
   const canDeleteCampaigns = canDelete('campaigns');
   const canEditCampaigns = canEdit('campaigns');
 
@@ -73,8 +76,8 @@ export default function CampaignDetails({ campaign, donations, onClose, onDelete
         </button>
         <h2 className="text-2xl font-bold mb-2 text-[#1C1917]">{campaign.name}</h2>
         <p className="mb-2 text-[#334155]">{campaign.description}</p>
-        <div className="mb-2 text-[#64748B]">
-          <span>Start: {campaign.startDate}</span> | <span>End: {campaign.endDate}</span>
+        <div className="mb-2 text-[#334155]">
+          <span>Start: {new Date(campaign.startDate).toLocaleDateString()}</span> | <span>End: {new Date(campaign.endDate).toLocaleDateString()}</span>
         </div>
         <div className="mb-4">
           <span className="font-semibold text-[#0F766E]">${campaign.raised.toLocaleString()}</span>
@@ -86,28 +89,24 @@ export default function CampaignDetails({ campaign, donations, onClose, onDelete
             style={{ width: `${Math.min(100, (campaign.raised / campaign.goal) * 100)}%` }}
           />
         </div>
-        <h3 className="text-lg font-semibold mb-2">Donations</h3>
+        <h3 className="text-lg font-semibold mb-2 text-[#1C1917]">Donations</h3>
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white border border-[#E2E8F0] rounded-lg">
             <thead>
               <tr className="bg-[#F1F5F9] text-[#334155]">
-                <th className="py-2 px-4 border-b">Donor</th>
-                <th className="py-2 px-4 border-b">Amount</th>
-                <th className="py-2 px-4 border-b">Date</th>
-                <th className="py-2 px-4 border-b">Method</th>
-                <th className="py-2 px-4 border-b">Status</th>
+                <th className="py-2 px-4 border-b text-left">Donor</th>
+                <th className="py-2 px-4 border-b text-center">Amount</th>
+                <th className="py-2 px-4 border-b text-center">Date</th>
               </tr>
             </thead>
             <tbody>
               {campaignDonations.length === 0 ? (
-                <tr><td colSpan={5} className="text-center text-gray-500 py-4">No donations for this campaign.</td></tr>
+                <tr><td colSpan={3} className="text-center text-gray-500 py-4">No donations for this campaign.</td></tr>
               ) : campaignDonations.map(donation => (
                 <tr key={donation.id} className="text-[#334155] hover:bg-[#F8FAFC] transition">
-                  <td className="py-2 px-4 border-b">{donation.donor}</td>
-                  <td className="py-2 px-4 border-b">${donation.amount.toLocaleString()}</td>
-                  <td className="py-2 px-4 border-b">{donation.date}</td>
-                  <td className="py-2 px-4 border-b">{donation.method}</td>
-                  <td className="py-2 px-4 border-b">{donation.status}</td>
+                  <td className="py-2 px-4 border-b text-left">{donation.donor?.name || 'Unknown Donor'}</td>
+                  <td className="py-2 px-4 border-b text-center">${donation.amount.toLocaleString()}</td>
+                  <td className="py-2 px-4 border-b text-center">{new Date(donation.date).toLocaleDateString()}</td>
                 </tr>
               ))}
             </tbody>

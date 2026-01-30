@@ -16,12 +16,18 @@ interface ProtectedPageProps {
  */
 export default function ProtectedPage({ screenName, children }: ProtectedPageProps) {
   const router = useRouter();
-  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
-  const [isChecking, setIsChecking] = useState(true);
+  const initialLoggedIn = typeof window !== 'undefined' && isAdminLoggedIn();
+  const [hasAccess, setHasAccess] = useState<boolean | null>(() => {
+    if (typeof window === 'undefined') return null;
+    if (!initialLoggedIn) return null;
+    return canAccessScreen(screenName);
+  });
+  const [isChecking, setIsChecking] = useState(!initialLoggedIn);
 
   useEffect(() => {
     // Check if admin is logged in
     if (!isAdminLoggedIn()) {
+      setIsChecking(true);
       router.push('/');
       return;
     }

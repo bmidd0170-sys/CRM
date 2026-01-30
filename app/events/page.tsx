@@ -146,7 +146,6 @@ export default function EventsPage() {
                         <h1 className="font-bricolage text-2xl font-bold text-[#1C1917]">Events</h1>
                         <div className="flex items-center gap-6">
                             <span className="text-[#1C1917] font-semibold">{adminName || "Loading..."}</span>
-                            <span className="text-[#57534E] text-base">ID: {adminId || "—"}</span>
                             <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
                         </div>
                     </div>
@@ -173,46 +172,54 @@ export default function EventsPage() {
                                 event={editingEvent}
                             />
                         )}
-                        <div className="grid gap-6 md:grid-cols-2">
-                            {events.map((event) => (
-                                <div
-                                    key={event.id}
-                                    className="bg-white border border-[#E2E8F0] rounded-lg p-6 shadow-sm relative"
-                                >
-                                    {canDeleteEvents && (
-                                        <button
-                                            onClick={(e) => handleDelete(event.id, e)}
-                                            className="absolute top-4 right-16 bg-rose-500 text-white px-3 py-1 rounded-md text-xs hover:bg-rose-600 transition"
-                                            title="Delete Event"
-                                        >
-                                            Delete
-                                        </button>
-                                    )}
-                                    {canEditEvents && (
-                                        <button
-                                            onClick={(e) => handleEditClick(event, e)}
-                                            className="absolute top-4 right-4 bg-[#0F766E] text-white px-3 py-1 rounded-md text-xs hover:bg-[#0D5B54] transition"
-                                            title="Edit Event"
-                                        >
-                                            Edit
-                                        </button>
-                                    )}
-                                    {event.image && (
-                                        <img src={event.image} alt={event.name} className="mb-4 max-h-40 rounded w-full object-cover" />
-                                    )}
-                                    <h3 className="text-lg font-bold text-[#1C1917] mb-2">{event.name}</h3>
-                                    <p className="mb-3 text-[#334155]">{event.description}</p>
-                                    <span className="text-sm font-semibold text-[#0F766E] block mb-3">
-                                        {new Date(event.date).toLocaleDateString()}
-                                    </span>
-                                    {event.campaign && (
-                                        <div className="text-sm text-[#64748B]">
-                                            Campaign: {event.campaign.name}
-                                        </div>
-                                    )}
+                        {events.length === 0 ? (
+                            <div className="flex items-center justify-center py-16">
+                                <div className="bg-[#F1F5F9] border border-[#E2E8F0] rounded-lg p-8">
+                                    <p className="text-[#64748B] text-lg">There are no Scheduled Events At This Time</p>
                                 </div>
-                            ))}
-                        </div>
+                            </div>
+                        ) : (
+                            <div className="grid gap-6 md:grid-cols-2">
+                                {events.map((event) => (
+                                    <div
+                                        key={event.id}
+                                        className="bg-white border border-[#E2E8F0] rounded-lg p-6 shadow-sm relative"
+                                    >
+                                        {canDeleteEvents && (
+                                            <button
+                                                onClick={(e) => handleDelete(event.id, e)}
+                                                className="absolute top-4 right-16 bg-rose-500 text-white px-3 py-1 rounded-md text-xs hover:bg-rose-600 transition"
+                                                title="Delete Event"
+                                            >
+                                                Delete
+                                            </button>
+                                        )}
+                                        {canEditEvents && (
+                                            <button
+                                                onClick={(e) => handleEditClick(event, e)}
+                                                className="absolute top-4 right-4 bg-[#0F766E] text-white px-3 py-1 rounded-md text-xs hover:bg-[#0D5B54] transition"
+                                                title="Edit Event"
+                                            >
+                                                Edit
+                                            </button>
+                                        )}
+                                        {event.image && (
+                                            <img src={event.image} alt={event.name} className="mb-4 max-h-40 rounded w-full object-cover" />
+                                        )}
+                                        <h3 className="text-lg font-bold text-[#1C1917] mb-2">{event.name}</h3>
+                                        <p className="mb-3 text-[#334155]">{event.description}</p>
+                                        <span className="text-sm font-semibold text-[#0F766E] block mb-3">
+                                            {new Date(event.date).toLocaleDateString()}
+                                        </span>
+                                        {event.campaign && (
+                                            <div className="text-sm text-[#64748B]">
+                                                Campaign: {event.campaign.name}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </main>
             </div>

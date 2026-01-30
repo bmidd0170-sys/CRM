@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { AdminList, AdminProfile } from "../components/AdminList";
 import Sidebar from "../components/Sidebar";
-import { getAdminId, handleLogout } from "@/lib/admin-storage";
+import { getAdminId, handleLogout, getAdminData } from "@/lib/admin-storage";
 
 const allRestrictions = [
     "No Delete",
@@ -28,6 +28,15 @@ export default function SettingsPage() {
     const [selectedAdmin, setSelectedAdmin] = useState<null | any>(null);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+    const [adminName, setAdminName] = useState("");
+
+    // Get logged-in admin data
+    useEffect(() => {
+        const admin = getAdminData();
+        if (admin) {
+            setAdminName(admin.name);
+        }
+    }, []);
 
     // Fetch admins from database
     useEffect(() => {
@@ -126,10 +135,13 @@ export default function SettingsPage() {
             <main className="flex-1 min-h-screen ml-[260px]">
                 <div className="bg-white border-b border-[#E2E8F0] px-8 py-5 flex justify-between items-center sticky top-0 z-40 animate-slideInDown">
                     <h1 className="font-bricolage text-2xl font-bold text-[#1C1917]">Settings</h1>
-                    <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
+                    <div className="flex items-center gap-6">
+                        <span className="text-[#1C1917] font-semibold">{adminName || "Loading..."}</span>
+                        <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
+                    </div>
                 </div>
                 <div className="p-8 max-w-2xl mx-auto">
-                    <h2 className="text-xl font-semibold text-[#1C1917] mb-6">Manage Admins</h2>
+                    <h2 className="text-xl font-semibold text-[#1C1917] mb-6">Create Admins</h2>
                     {message && (
                         <div className={`mb-4 p-3 rounded-lg text-sm font-medium ${message.type === "success" ? "bg-[#A7F3D0] text-[#047857]" : "bg-[#FECACA] text-[#991B1B]"}`}>
                             {message.text}
@@ -199,14 +211,21 @@ export default function SettingsPage() {
                             <label className="block font-medium mb-2 text-[#1C1917]">Restrictions</label>
                             <div className="flex flex-wrap gap-3">
                                 {allRestrictions.map(r => (
-                                    <label key={r} className="flex items-center gap-2 text-[#1C1917]">
-                                        <input
-                                            type="checkbox"
-                                            checked={form.restrictions.includes(r)}
-                                            onChange={() => handleRestrictionChange(r)}
-                                        />
-                                        <span>{r}</span>
-                                    </label>
+                                    <button
+                                        key={r}
+                                        type="button"
+                                        onClick={() => handleRestrictionChange(r)}
+                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all border-2 ${
+                                            form.restrictions.includes(r)
+                                                ? "bg-[#0F766E] text-white border-[#0F766E] shadow-md"
+                                                : "bg-white text-[#1C1917] border-[#E2E8F0] hover:border-[#0F766E] hover:bg-[#F0FDFA]"
+                                        }`}
+                                    >
+                                        {form.restrictions.includes(r) && (
+                                            <span className="mr-2">✓</span>
+                                        )}
+                                        {r}
+                                    </button>
                                 ))}
                             </div>
                         </div>

@@ -6,6 +6,7 @@
  * - Browser localStorage
  * - Browser sessionStorage
  * - API call to backend to clear server-side caches
+ * - Reports and report-related data
  */
 export async function clearTemporaryData() {
   try {
@@ -123,6 +124,26 @@ export function clearDonationTempData() {
 }
 
 /**
+ * Clears all temporary data related to reports
+ * Useful when starting fresh with a new organization
+ */
+export function clearReportsTempData() {
+  // Clear reports from localStorage
+  const reportKeys = getLocalStorageKeysByPattern(/report/i);
+  const followUpKeys = getLocalStorageKeysByPattern(/followup|follow-up|follow_up/i);
+  const actionKeys = getLocalStorageKeysByPattern(/action/i);
+
+  clearLocalStorageItems([...reportKeys, ...followUpKeys, ...actionKeys]);
+
+  // Clear from sessionStorage
+  const sessionReportKeys = getSessionStorageKeysByPattern(/report/i);
+  const sessionFollowUpKeys = getSessionStorageKeysByPattern(/followup|follow-up|follow_up/i);
+  const sessionActionKeys = getSessionStorageKeysByPattern(/action/i);
+
+  clearSessionStorageItems([...sessionReportKeys, ...sessionFollowUpKeys, ...sessionActionKeys]);
+}
+
+/**
  * Clears all form data and input values
  * Useful for resetting the application state
  */
@@ -146,6 +167,7 @@ export async function resetApplicationState() {
 
     // Clear specific data categories
     clearDonationTempData();
+    clearReportsTempData();
     clearFormData();
 
     // Reset any in-memory caches (if you have them)

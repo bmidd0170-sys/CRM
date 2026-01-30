@@ -26,9 +26,16 @@ interface MenuItem {
 }
 
 export default function Sidebar({ active }: { active: string }) {
-    const [organizationName, setOrganizationName] = useState("Helping Hands");
+    const [organizationName, setOrganizationName] = useState(() => {
+        // Initialize from localStorage to prevent flicker
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('organizationName') || "Helping Hands";
+        }
+        return "Helping Hands";
+    });
     const [showSuperAdminLinks, setShowSuperAdminLinks] = useState(false);
     const [visibleMenu, setVisibleMenu] = useState<MenuItem[]>([]);
+    const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
         // Fetch the first admin's organization name
@@ -41,7 +48,9 @@ export default function Sidebar({ active }: { active: string }) {
             .then(res => res.json())
             .then(data => {
                 if (data && data.length > 0 && data[0].organizationName) {
-                    setOrganizationName(data[0].organizationName);
+                    const orgName = data[0].organizationName;
+                    setOrganizationName(orgName);
+                    localStorage.setItem('organizationName', orgName);
                 }
             })
             .catch(err => console.error("Failed to fetch organization name:", err));
@@ -58,6 +67,26 @@ export default function Sidebar({ active }: { active: string }) {
         setVisibleMenu(accessibleItems);
     }, []);
 
+    useEffect(() => {
+        const currentAdminId = getAdminId();
+        if (!currentAdminId) return;
+
+        fetch("/api/notifications?unread=true", {
+            headers: {
+                'x-admin-id': currentAdminId?.toString() || ''
+            }
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setUnreadCount(data.length);
+                } else {
+                    setUnreadCount(0);
+                }
+            })
+            .catch(() => setUnreadCount(0));
+    }, []);
+
     return (
         <aside className="w-[260px] bg-[#1E293B] text-white flex flex-col fixed h-full z-50 animate-slideInLeft">
             <div className="py-7 px-6 border-b border-white/10">
@@ -71,7 +100,14 @@ export default function Sidebar({ active }: { active: string }) {
                         className={`flex items-center gap-3 px-6 py-3 text-[0.97rem] border-l-4 transition-all ${active === item.label ? "bg-[#334155] border-[#14B8A6] font-semibold" : "border-transparent hover:bg-[#334155] hover:border-[#14B8A6]"}`}
                     >
                         <span className="w-5 h-5 flex items-center justify-center text-lg">{item.icon}</span>
-                        <span>{item.label}</span>
+                        <span className="flex items-center gap-2">
+                            {item.label}
+                            {item.label === "Notifications" && unreadCount > 0 && (
+                                <span className="min-w-[20px] h-[20px] px-1 flex items-center justify-center rounded-full bg-[#14B8A6] text-white text-[0.7rem] font-bold">
+                                    {unreadCount}
+                                </span>
+                            )}
+                        </span>
                     </Link>
                 ))}
             </nav>

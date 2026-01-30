@@ -112,6 +112,12 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: permission.error }, { status: permission.status });
     }
 
+    // Get admin's organization
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+    }
+
     const data = await request.json();
     const { id, ...updateData } = data;
 
@@ -131,9 +137,12 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Check if notification exists
-    const existingNotification = await prisma.notification.findUnique({
-      where: { id: parseInt(id) }
+    // Check if notification exists and belongs to the same organization
+    const existingNotification = await prisma.notification.findFirst({
+      where: { 
+        id: parseInt(id),
+        organizationName
+      }
     });
 
     if (!existingNotification) {
@@ -178,9 +187,18 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: permission.error }, { status: permission.status });
     }
 
-    // Check if notification exists
-    const existingNotification = await prisma.notification.findUnique({
-      where: { id: parseInt(id) }
+    // Get admin's organization
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+    }
+
+    // Check if notification exists and belongs to the same organization
+    const existingNotification = await prisma.notification.findFirst({
+      where: { 
+        id: parseInt(id),
+        organizationName
+      }
     });
 
     if (!existingNotification) {

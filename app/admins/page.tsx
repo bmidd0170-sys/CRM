@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
-import { isSuperAdmin, getAdminId, handleLogout } from "@/lib/admin-storage";
+import { isSuperAdmin, getAdminId, handleLogout, getAdminData } from "@/lib/admin-storage";
 
 interface AdminRecord {
   id: number;
@@ -21,6 +21,15 @@ export default function AdminsPage() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<AdminRecord | null>(null);
   const [editForm, setEditForm] = useState({ name: "", email: "", role: "Admin", restrictions: "" });
+  const [adminName, setAdminName] = useState("");
+
+  // Get logged-in admin data
+  useEffect(() => {
+    const admin = getAdminData();
+    if (admin) {
+      setAdminName(admin.name);
+    }
+  }, []);
 
   // Check if user is super admin
   useEffect(() => {
@@ -184,7 +193,8 @@ export default function AdminsPage() {
       <main className="flex-1 min-h-screen ml-[260px]">
         <div className="bg-white border-b border-[#E2E8F0] px-8 py-5 flex justify-between items-center sticky top-0 z-40 animate-slideInDown">
           <h1 className="font-bricolage text-2xl font-bold text-[#1C1917]">Admin Management</h1>
-          <div className="flex gap-3">
+          <div className="flex items-center gap-6">
+            <span className="text-[#1C1917] font-semibold">{adminName || "Loading..."}</span>
             <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
           </div>
         </div>

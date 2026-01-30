@@ -2,9 +2,10 @@ export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
-import { prisma, checkEmailExists, getAdminIdFromRequest, verifyPermission } from '@/lib/db';
+import { prisma, checkEmailExists, getAdminIdFromRequest, getAdminOrganization, verifyPermission } from '@/lib/db';
 import { adminCreateSchema, adminUpdateSchema, validateData, formatValidationErrors } from '@/lib/validators';
 import { hashPassword } from '@/lib/auth';
+import { createNotification } from '@/lib/notification-helper';
 
 const adminSelect = {
   id: true,
@@ -22,10 +23,21 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
+    // Get admin organization
+    const adminId = getAdminIdFromRequest(request);
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+    }
+
     // Get single admin by ID
     if (id) {
-      const admin = await prisma.admin.findUnique({
-        where: { id: parseInt(id) },
+      const admin = await prisma.admin.findFirst({
+        where: { 
+          id: parseInt(id),
+          organizationName
+        },
         select: adminSelect
       });
 
@@ -36,8 +48,9 @@ export async function GET(request: Request) {
       return NextResponse.json(admin);
     }
 
-    // Get all admins
+    // Get all admins for this organization
     const admins = await prisma.admin.findMany({
+      where: { organizationName },
       orderBy: { id: 'asc' },
       select: adminSelect
     });
@@ -63,9 +76,12 @@ export async function POST(request: Request) {
     const adminCount = await prisma.admin.count();
     console.log('[API] Current admin count:', adminCount);
     
+    let organizationName: string | null = null;
+    let adminId: number | null = null;
+
     // If there are existing admins, require authentication
     if (adminCount > 0) {
-      const adminId = getAdminIdFromRequest(request);
+      adminId = getAdminIdFromRequest(request);
       console.log('[API] Creating admin - Admin ID from request:', adminId);
       const permission = await verifyPermission(adminId, 'admins', 'create');
       console.log('[API] Permission check result:', permission);
@@ -73,8 +89,16 @@ export async function POST(request: Request) {
         console.error('[API] Permission denied:', permission.error);
         return NextResponse.json({ error: permission.error }, { status: permission.status });
       }
+      
+      // Get the organization of the requesting admin
+      organizationName = adminId ? await getAdminOrganization(adminId) : null;
+      if (!organizationName) {
+        return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+      }
     } else {
       console.log('[API] First admin creation - skipping authentication');
+      // For first admin, use provided organization or default
+      organizationName = data.organizationName || 'Helping Hands';
     }
 
     // Validate input data
@@ -107,7 +131,8 @@ export async function POST(request: Request) {
 
     const adminCreateData: Prisma.AdminCreateInput = {
       ...adminData,
-      passwordHash
+      passwordHash,
+      organizationName: organizationName as string
     };
 
     // Create admin
@@ -116,6 +141,16 @@ export async function POST(request: Request) {
       select: adminSelect
     });
     console.log('[API] Admin created successfully in database:', newAdmin);
+
+    // Create notification (skip for first admin)
+    if (adminCount > 0 && adminId) {
+      await createNotification({
+        type: 'admin',
+        message: `New admin created: ${newAdmin.name} (${newAdmin.role})`,
+        organizationName: organizationName as string,
+        adminId: adminId
+      });
+    }
 
     return NextResponse.json({ admin: newAdmin, data: newAdmin }, { status: 201 });
   } catch (error) {
@@ -134,6 +169,12 @@ export async function PUT(request: Request) {
     const permission = await verifyPermission(adminId, 'admins', 'update');
     if (!permission.authorized) {
       return NextResponse.json({ error: permission.error }, { status: permission.status });
+    }
+
+    // Get admin's organization
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
     }
 
     const data = await request.json();
@@ -155,9 +196,12 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Check if admin exists
-    const existingAdmin = await prisma.admin.findUnique({
-      where: { id: parseInt(id) }
+    // Check if admin exists and belongs to the same organization
+    const existingAdmin = await prisma.admin.findFirst({
+      where: { 
+        id: parseInt(id),
+        organizationName
+      }
     });
 
     if (!existingAdmin) {
@@ -185,6 +229,14 @@ export async function PUT(request: Request) {
       select: adminSelect
     });
 
+    // Create notification
+    await createNotification({
+      type: 'admin',
+      message: `Admin updated: ${updatedAdmin.name}`,
+      organizationName,
+      adminId
+    });
+
     return NextResponse.json(updatedAdmin);
   } catch (error) {
     console.error('Admin update error:', error);
@@ -204,9 +256,25 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Admin ID is required' }, { status: 400 });
     }
 
-    // Check if admin exists
-    const existingAdmin = await prisma.admin.findUnique({
-      where: { id: parseInt(id) }
+    // Check permissions
+    const adminId = getAdminIdFromRequest(request);
+    const permission = await verifyPermission(adminId, 'admins', 'delete');
+    if (!permission.authorized) {
+      return NextResponse.json({ error: permission.error }, { status: permission.status });
+    }
+
+    // Get admin's organization
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+    }
+
+    // Check if admin exists and belongs to the same organization
+    const existingAdmin = await prisma.admin.findFirst({
+      where: { 
+        id: parseInt(id),
+        organizationName
+      }
     });
 
     if (!existingAdmin) {
@@ -216,6 +284,14 @@ export async function DELETE(request: Request) {
     // Delete admin
     await prisma.admin.delete({
       where: { id: parseInt(id) }
+    });
+
+    // Create notification
+    await createNotification({
+      type: 'admin',
+      message: `Admin removed: ${existingAdmin.name}`,
+      organizationName,
+      adminId
     });
 
     return NextResponse.json({ message: 'Admin deleted successfully' });

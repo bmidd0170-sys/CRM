@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma, checkEmailExists, getAdminIdFromRequest, getAdminOrganization, verifyPermission } from '@/lib/db';
 import { donorSchema, validateData, formatValidationErrors } from '@/lib/validators';
+import { createNotification } from '@/lib/notification-helper';
 
 export async function GET(request: Request) {
   try {
@@ -100,6 +101,14 @@ export async function POST(request: Request) {
       include: { donations: true }
     });
 
+    // Create notification
+    await createNotification({
+      type: 'admin',
+      message: `New donor added: ${newDonor.name}`,
+      organizationName,
+      adminId
+    });
+
     return NextResponse.json(newDonor, { status: 201 });
   } catch (error) {
     console.error('Donor create error:', error);
@@ -180,6 +189,14 @@ export async function PUT(request: Request) {
       include: { donations: true }
     });
 
+    // Create notification
+    await createNotification({
+      type: 'admin',
+      message: `Donor updated: ${updatedDonor.name}`,
+      organizationName,
+      adminId
+    });
+
     return NextResponse.json(updatedDonor);
   } catch (error) {
     console.error('Donor update error:', error);
@@ -229,11 +246,81 @@ export async function DELETE(request: Request) {
       where: { id: parseInt(id) }
     });
 
+    // Create notification
+    await createNotification({
+      type: 'admin',
+      message: `Donor deleted: ${existingDonor.name}`,
+      organizationName,
+      adminId
+    });
+
     return NextResponse.json({ message: 'Donor deleted successfully' });
   } catch (error) {
     console.error('Donor delete error:', error);
     return NextResponse.json(
       { error: 'Failed to delete donor', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}
+export async function PATCH(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Donor ID is required' }, { status: 400 });
+    }
+
+    // Check permissions
+    const adminId = getAdminIdFromRequest(request);
+    const permission = await verifyPermission(adminId, 'donors', 'update');
+    if (!permission.authorized) {
+      return NextResponse.json({ error: permission.error }, { status: permission.status });
+    }
+    
+    // Get admin organization
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+    }
+
+    const data = await request.json();
+
+    // Check if donor exists in this organization
+    const existingDonor = await prisma.donor.findFirst({
+      where: { 
+        id: parseInt(id),
+        organizationName
+      }
+    });
+
+    if (!existingDonor) {
+      return NextResponse.json({ error: 'Donor not found' }, { status: 404 });
+    }
+
+    // Update lastContacted to current date/time
+    const updatedDonor = await prisma.donor.update({
+      where: { id: parseInt(id) },
+      data: {
+        lastContacted: new Date()
+      },
+      include: { donations: true }
+    });
+
+    // Create notification
+    await createNotification({
+      type: 'admin',
+      message: `Donor contacted: ${updatedDonor.name}`,
+      organizationName,
+      adminId
+    });
+
+    return NextResponse.json(updatedDonor);
+  } catch (error) {
+    console.error('Donor contact update error:', error);
+    return NextResponse.json(
+      { error: 'Failed to update donor contact', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

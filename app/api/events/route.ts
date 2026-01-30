@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma, checkCampaignExists, getAdminIdFromRequest, getAdminOrganization, verifyPermission } from '@/lib/db';
 import { eventSchema, validateData, formatValidationErrors } from '@/lib/validators';
+import { createNotification } from '@/lib/notification-helper';
 
 export async function GET(request: Request) {
   try {
@@ -102,6 +103,14 @@ export async function POST(request: Request) {
       include: { campaign: true }
     });
 
+    // Create notification
+    await createNotification({
+      type: 'reminder',
+      message: `New event scheduled: ${newEvent.name} on ${new Date(newEvent.date).toLocaleDateString()}`,
+      organizationName,
+      adminId
+    });
+
     return NextResponse.json(newEvent, { status: 201 });
   } catch (error) {
     console.error('Event create error:', error);
@@ -182,6 +191,14 @@ export async function PUT(request: Request) {
       include: { campaign: true }
     });
 
+    // Create notification
+    await createNotification({
+      type: 'reminder',
+      message: `Event updated: ${updatedEvent.name}`,
+      organizationName,
+      adminId
+    });
+
     return NextResponse.json(updatedEvent);
   } catch (error) {
     console.error('Event update error:', error);
@@ -229,6 +246,14 @@ export async function DELETE(request: Request) {
     // Delete event
     await prisma.event.delete({
       where: { id: parseInt(id) }
+    });
+
+    // Create notification
+    await createNotification({
+      type: 'reminder',
+      message: `Event cancelled: ${existingEvent.name}`,
+      organizationName,
+      adminId
     });
 
     return NextResponse.json({ message: 'Event deleted successfully' });

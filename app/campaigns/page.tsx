@@ -4,11 +4,11 @@ import React, { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import CampaignForm from "../components/CampaignForm";
 import CampaignDetails from "../components/CampaignDetails";
-import { donations } from "./donationsData";
 import { canDelete, canCreate, canEdit, getAdminId, handleLogout, getAdminData } from "@/lib/admin-storage";
 
 export default function CampaignsPage() {
     const [campaigns, setCampaigns] = useState<any[]>([]);
+    const [donations, setDonations] = useState<any[]>([]);
     const [showForm, setShowForm] = useState(false);
     const [editingCampaign, setEditingCampaign] = useState<any | null>(null);
     const [selectedCampaign, setSelectedCampaign] = useState<any | null>(null);
@@ -43,13 +43,31 @@ export default function CampaignsPage() {
             .then(data => setCampaigns(data));
     }
 
+    // Fetch donations from API
+    function fetchDonations() {
+        const currentAdminId = getAdminId();
+        fetch("/api/donations", {
+            headers: {
+                'x-admin-id': currentAdminId?.toString() || ''
+            }
+        })
+            .then(res => res.json())
+            .then(data => setDonations(data))
+            .catch(error => {
+                console.error('Error fetching donations:', error);
+                setDonations([]);
+            });
+    }
+
     useEffect(() => {
         fetchCampaigns();
+        fetchDonations();
     }, []);
 
     function handleCreated() {
         setShowForm(false);
         fetchCampaigns(); // Refresh after adding
+        fetchDonations(); // Also refresh donations to show new donations
     }
 
     function handleEdited() {
@@ -57,6 +75,7 @@ export default function CampaignsPage() {
         setShowForm(false);
         setSelectedCampaign(null);
         fetchCampaigns(); // Refresh after editing
+        fetchDonations(); // Also refresh donations
     }
 
     function handleEditClick(campaign: any, event: React.MouseEvent) {
@@ -88,6 +107,7 @@ export default function CampaignsPage() {
             })
             .then(() => {
                 fetchCampaigns(); // Refresh the list
+                fetchDonations(); // Also refresh donations
             })
             .catch(error => {
                 alert(`Error: ${error.message}`);
@@ -103,7 +123,6 @@ export default function CampaignsPage() {
                     <h1 className="font-bricolage text-2xl font-bold text-[#1C1917]">Campaigns</h1>
                     <div className="flex items-center gap-6">
                         <span className="text-[#1C1917] font-semibold">{adminName || "Loading..."}</span>
-                        <span className="text-[#57534E] text-base">ID: {adminId || "—"}</span>
                         <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
                     </div>
                 </div>
@@ -130,47 +149,55 @@ export default function CampaignsPage() {
                             campaign={editingCampaign}
                         />
                     )}
-                    <div className="grid gap-6 md:grid-cols-2">
-                        {campaigns.map(c => (
-                            <div
-                                key={c.id}
-                                className="bg-white border border-[#E2E8F0] rounded-lg p-6 shadow-sm cursor-pointer hover:shadow-md transition relative"
-                                onClick={() => setSelectedCampaign(c)}
-                            >
-                                {canDeleteCampaigns && (
-                                    <button
-                                        onClick={(e) => handleDelete(c.id, e)}
-                                        className="absolute top-4 right-16 bg-rose-500 text-white px-3 py-1 rounded-md text-xs hover:bg-rose-600 transition"
-                                        title="Delete Campaign"
-                                    >
-                                        Delete
-                                    </button>
-                                )}
-                                {canEditCampaigns && (
-                                    <button
-                                        onClick={(e) => handleEditClick(c, e)}
-                                        className="absolute top-4 right-4 bg-[#0F766E] text-white px-3 py-1 rounded-md text-xs hover:bg-[#0D5B54] transition"
-                                        title="Edit Campaign"
-                                    >
-                                        Edit
-                                    </button>
-                                )}
-                                <h3 className="text-lg font-bold text-[#1C1917] mb-2">{c.name}</h3>
-                                <p className="mb-3 text-[#334155]">{c.description}</p>
-                                <span className="text-sm font-semibold text-[#0F766E] block mb-3">{c.startDate?.slice(0, 10)} - {c.endDate?.slice(0, 10)}</span>
-                                <div className="mb-2">
-                                    <span className="font-semibold text-[#0F766E]">${c.raised?.toLocaleString()}</span>
-                                    <span className="text-[#64748B]"> / ${c.goal?.toLocaleString()} raised</span>
-                                </div>
-                                <div className="w-full bg-[#E2E8F0] rounded h-3 overflow-hidden">
-                                    <div
-                                        className="bg-[#14B8A6] h-3"
-                                        style={{ width: `${Math.min(100, (c.raised / c.goal) * 100)}%` }}
-                                    />
-                                </div>
+                    {campaigns.length === 0 ? (
+                        <div className="flex items-center justify-center py-16">
+                            <div className="bg-[#F1F5F9] border border-[#E2E8F0] rounded-lg p-8">
+                                <p className="text-[#64748B] text-lg">There are no Campaigns At This Time</p>
                             </div>
-                        ))}
-                    </div>
+                        </div>
+                    ) : (
+                        <div className="grid gap-6 md:grid-cols-2">
+                            {campaigns.map(c => (
+                                <div
+                                    key={c.id}
+                                    className="bg-white border border-[#E2E8F0] rounded-lg p-6 shadow-sm cursor-pointer hover:shadow-md transition relative"
+                                    onClick={() => setSelectedCampaign(c)}
+                                >
+                                    {canDeleteCampaigns && (
+                                        <button
+                                            onClick={(e) => handleDelete(c.id, e)}
+                                            className="absolute top-4 right-16 bg-rose-500 text-white px-3 py-1 rounded-md text-xs hover:bg-rose-600 transition"
+                                            title="Delete Campaign"
+                                        >
+                                            Delete
+                                        </button>
+                                    )}
+                                    {canEditCampaigns && (
+                                        <button
+                                            onClick={(e) => handleEditClick(c, e)}
+                                            className="absolute top-4 right-4 bg-[#0F766E] text-white px-3 py-1 rounded-md text-xs hover:bg-[#0D5B54] transition"
+                                            title="Edit Campaign"
+                                        >
+                                            Edit
+                                        </button>
+                                    )}
+                                    <h3 className="text-lg font-bold text-[#1C1917] mb-2">{c.name}</h3>
+                                    <p className="mb-3 text-[#334155]">{c.description}</p>
+                                    <span className="text-sm font-semibold text-[#0F766E] block mb-3">{c.startDate?.slice(0, 10)} - {c.endDate?.slice(0, 10)}</span>
+                                    <div className="mb-2">
+                                        <span className="font-semibold text-[#0F766E]">${c.raised?.toLocaleString()}</span>
+                                        <span className="text-[#64748B]"> / ${c.goal?.toLocaleString()} raised</span>
+                                    </div>
+                                    <div className="w-full bg-[#E2E8F0] rounded h-3 overflow-hidden">
+                                        <div
+                                            className="bg-[#14B8A6] h-3"
+                                            style={{ width: `${Math.min(100, (c.raised / c.goal) * 100)}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                     {selectedCampaign && (
                         <CampaignDetails
                             campaign={selectedCampaign}

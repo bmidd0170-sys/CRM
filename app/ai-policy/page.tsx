@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
-import { isSuperAdmin, handleLogout } from "@/lib/admin-storage";
+import { isSuperAdmin, handleLogout, getAdminData } from "@/lib/admin-storage";
 
 const safeguards = [
   {
@@ -49,10 +49,18 @@ const improvements = [
 export default function AIPolicyPage() {
   const [checked, setChecked] = useState(false);
   const [allowed, setAllowed] = useState(false);
+  const [adminName, setAdminName] = useState("");
 
   useEffect(() => {
     setAllowed(isSuperAdmin());
     setChecked(true);
+  }, []);
+
+  useEffect(() => {
+    const admin = getAdminData();
+    if (admin) {
+      setAdminName(admin.name);
+    }
   }, []);
 
   if (!checked) {
@@ -80,7 +88,10 @@ export default function AIPolicyPage() {
       <main className="flex-1 min-h-screen ml-[260px]">
         <div className="bg-white border-b border-[#E2E8F0] px-8 py-5 flex justify-between items-center sticky top-0 z-40 animate-slideInDown">
           <h1 className="font-bricolage text-2xl font-bold text-[#1C1917]">AI Policy & Safeguards</h1>
-          <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
+          <div className="flex items-center gap-6">
+            <span className="text-[#1C1917] font-semibold">{adminName || "Loading..."}</span>
+            <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
+          </div>
         </div>
 
         <div className="p-8 space-y-8">
@@ -163,14 +174,6 @@ export default function AIPolicyPage() {
                 <p className="text-sm uppercase tracking-[0.14em] text-[#38BDF8] font-semibold">Operational Notes</p>
                 <h3 className="text-xl font-bold">Admin controls & escalation</h3>
                 <p className="text-white/80 text-sm mt-2 max-w-3xl">Super Admins can disable AI endpoints, rotate API keys, and review flagged generations. Any incident follows the documented security runbook with time-bound remediation and donor communication steps.</p>
-              </div>
-              <div className="bg-white/10 border border-white/20 rounded-xl p-4 text-sm min-w-[240px]">
-                <p className="text-white/80">Contacts</p>
-                <ul className="mt-2 space-y-1 text-white">
-                  <li className="flex justify-between"><span>Data Protection Officer</span><span className="text-white/80">dpo@donorconnect.org</span></li>
-                  <li className="flex justify-between"><span>Security</span><span className="text-white/80">security@donorconnect.org</span></li>
-                  <li className="flex justify-between"><span>Trust & Safety</span><span className="text-white/80">trust@donorconnect.org</span></li>
-                </ul>
               </div>
             </div>
           </section>

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma, getAdminIdFromRequest, getAdminOrganization, verifyPermission } from '@/lib/db';
 import { campaignSchema, validateData, formatValidationErrors } from '@/lib/validators';
+import { createNotification } from '@/lib/notification-helper';
 
 export async function GET(request: Request) {
   try {
@@ -106,6 +107,14 @@ export async function POST(request: Request) {
       include: { events: true, donations: true }
     });
 
+    // Create notification
+    await createNotification({
+      type: 'admin',
+      message: `New campaign created: ${newCampaign.name}`,
+      organizationName,
+      adminId
+    });
+
     return NextResponse.json(newCampaign, { status: 201 });
   } catch (error) {
     console.error('Campaign create error:', error);
@@ -176,6 +185,14 @@ export async function PUT(request: Request) {
       include: { events: true, donations: true }
     });
 
+    // Create notification
+    await createNotification({
+      type: 'admin',
+      message: `Campaign updated: ${updatedCampaign.name}`,
+      organizationName,
+      adminId
+    });
+
     return NextResponse.json(updatedCampaign);
   } catch (error) {
     console.error('Campaign update error:', error);
@@ -223,6 +240,14 @@ export async function DELETE(request: Request) {
     // Delete campaign (will cascade delete related donations and events if configured)
     await prisma.campaign.delete({
       where: { id: parseInt(id) }
+    });
+
+    // Create notification
+    await createNotification({
+      type: 'admin',
+      message: `Campaign deleted: ${existingCampaign.name}`,
+      organizationName,
+      adminId
     });
 
     return NextResponse.json({ message: 'Campaign deleted successfully' });

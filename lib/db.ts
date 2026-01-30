@@ -78,11 +78,19 @@ export async function updateDonorTotal(donorId: number) {
     _sum: { amount: true }
   });
 
+  // Get the most recent donation date
+  const lastDonationRecord = await prisma.donation.findFirst({
+    where: { donorId },
+    orderBy: { date: 'desc' },
+    select: { date: true }
+  });
+
   await prisma.donor.update({
     where: { id: donorId },
     data: {
       total: total._sum.amount || 0,
-      lastDonation: new Date()
+      lastDonation: lastDonationRecord?.date || new Date(),
+      lastContacted: new Date()
     }
   });
 }
@@ -97,6 +105,16 @@ export async function updateCampaignRaised(campaignId: number) {
     where: { id: campaignId },
     data: { raised: total._sum.amount || 0 }
   });
+}
+
+export async function getAdminName(adminId: number | null): Promise<string> {
+  if (!adminId) return 'System';
+  const admin = await prisma.admin.findUnique({
+    where: { id: adminId },
+    select: { name: true, role: true }
+  });
+  if (!admin) return 'Unknown Admin';
+  return admin.role === 'Super Admin' ? `${admin.name} [Super Admin]` : admin.name;
 }
 
 // Authorization helpers

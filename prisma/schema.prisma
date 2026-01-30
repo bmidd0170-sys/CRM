@@ -25,6 +25,7 @@ model Donor {
   email            String
   total            Float      @default(0)
   lastDonation     DateTime?
+  lastContacted    DateTime?
   status           String
   tags             String[]   @default([])
   donations        Donation[]

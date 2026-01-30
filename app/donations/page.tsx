@@ -3,12 +3,15 @@
 import React, { useEffect, useState } from "react";
 
 import Sidebar from "../components/Sidebar";
-import { handleLogout, getAdminData } from "@/lib/admin-storage";
+import DonationForm from "./components/DonationForm";
+import { handleLogout, getAdminData, canEdit } from "@/lib/admin-storage";
 
 export default function DonationsPage() {
     const [donations, setDonations] = useState<any[]>([]);
     const [adminName, setAdminName] = useState("");
     const [adminId, setAdminId] = useState("");
+    const [showForm, setShowForm] = useState(false);
+    const [canCreateDonations, setCanCreateDonations] = useState(false);
 
     // Filter states
     const [date, setDate] = useState("");
@@ -24,6 +27,7 @@ export default function DonationsPage() {
             setAdminName(admin.name);
             setAdminId(admin.id.toString());
         }
+        setCanCreateDonations(canEdit('donations'));
     }, []);
 
     // Fetch donations from API
@@ -31,9 +35,13 @@ export default function DonationsPage() {
         const admin = getAdminData();
         if (!admin) return;
         
+        fetchDonations(admin.id.toString());
+    }, []);
+
+    function fetchDonations(adminId: string) {
         fetch("/api/donations", {
             headers: {
-                'x-admin-id': admin.id.toString()
+                'x-admin-id': adminId
             }
         })
             .then(res => {
@@ -44,7 +52,7 @@ export default function DonationsPage() {
             })
             .then(data => setDonations(data))
             .catch(error => console.error('Error fetching donations:', error));
-    }, []);
+    }
 
     // Get unique campaigns and methods from data
     const campaigns = Array.from(new Set(donations.map(d => d.campaign?.name).filter(Boolean)));
@@ -71,12 +79,21 @@ export default function DonationsPage() {
                     <h1 className="font-bricolage text-2xl font-bold text-[#1C1917]">Donations</h1>
                     <div className="flex items-center gap-6">
                         <span className="text-[#1C1917] font-semibold">{adminName || "Loading..."}</span>
-                        <span className="text-[#57534E] text-base">ID: {adminId || "—"}</span>
                         <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
                     </div>
                 </div>
                 <div className="p-8">
-                    <h2 className="text-xl font-semibold mb-4 text-[#1C1917]">All Donations</h2>
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-semibold text-[#1C1917]">All Donations</h2>
+                        {canCreateDonations && (
+                            <button
+                                onClick={() => setShowForm(true)}
+                                className="bg-[#0F766E] text-white px-4 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition"
+                            >
+                                + Add Donation
+                            </button>
+                        )}
+                    </div>
                     {/* Filters */}
                     <div className="flex flex-wrap gap-4 mb-6">
                         <input
@@ -133,6 +150,18 @@ export default function DonationsPage() {
                     </div>
                 </div>
             </main>
+            {showForm && (
+                <DonationForm
+                    onSave={() => {
+                        setShowForm(false);
+                        const admin = getAdminData();
+                        if (admin) {
+                            fetchDonations(admin.id.toString());
+                        }
+                    }}
+                    onClose={() => setShowForm(false)}
+                />
+            )}
         </div>
     );
 }
