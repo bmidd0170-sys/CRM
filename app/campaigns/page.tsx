@@ -15,16 +15,30 @@ export default function CampaignsPage() {
     const [canDeleteCampaigns, setCanDeleteCampaigns] = useState(false);
     const [canCreateCampaigns, setCanCreateCampaigns] = useState(false);
     const [canEditCampaigns, setCanEditCampaigns] = useState(false);
+    const [adminName, setAdminName] = useState("");
+    const [adminId, setAdminId] = useState("");
 
     useEffect(() => {
         setCanDeleteCampaigns(canDelete('campaigns'));
         setCanCreateCampaigns(canCreate('campaigns'));
         setCanEditCampaigns(canEdit('campaigns'));
+
+        // Get logged-in admin data
+        const admin = getAdminData();
+        if (admin) {
+            setAdminName(admin.name);
+            setAdminId(admin.id.toString());
+        }
     }, []);
 
     // Fetch campaigns from API
     function fetchCampaigns() {
-        fetch("/api/campaigns")
+        const currentAdminId = getAdminId();
+        fetch("/api/campaigns", {
+            headers: {
+                'x-admin-id': currentAdminId?.toString() || ''
+            }
+        })
             .then(res => res.json())
             .then(data => setCampaigns(data));
     }
@@ -87,7 +101,11 @@ export default function CampaignsPage() {
             <main className="flex-1 min-h-screen ml-[260px]">
                 <div className="bg-white border-b border-[#E2E8F0] px-8 py-5 flex justify-between items-center sticky top-0 z-40 animate-slideInDown">
                     <h1 className="font-bricolage text-2xl font-bold text-[#1C1917]">Campaigns</h1>
-                    <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
+                    <div className="flex items-center gap-6">
+                        <span className="text-[#1C1917] font-semibold">{adminName || "Loading..."}</span>
+                        <span className="text-[#57534E] text-base">ID: {adminId || "—"}</span>
+                        <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
+                    </div>
                 </div>
                 <div className="p-8">
                     <div className="flex justify-between items-center mb-8">
@@ -102,8 +120,8 @@ export default function CampaignsPage() {
                         )}
                     </div>
                     {showForm && (
-                        <CampaignForm 
-                            onCreate={handleCreated} 
+                        <CampaignForm
+                            onCreate={handleCreated}
                             onEdit={(id, data) => handleEdited()}
                             onClose={() => {
                                 setShowForm(false);

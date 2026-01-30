@@ -88,36 +88,31 @@ export default function LoginOverlay({ show, onClose }: LoginOverlayProps) {
                                         alert('Passwords do not match');
                                         return;
                                     }
-                                    // Create admin account
-                                    const adminResponse = await fetch('/api/admins', {
+                                    
+                                    // Use the login endpoint which handles registration with organization clearing
+                                    const loginResponse = await fetch('/api/logins', {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({
-                                            name: email.split('@')[0] || 'Admin',
                                             email: email,
-                                            role: 'Super Admin',
-                                            restrictions: [],
-                                            online: true,
-                                            changes: ['Organization registered'],
-                                            organizationName: orgName,
-                                            password
+                                            password: password,
+                                            organizationName: orgName
                                         })
                                     });
 
-                                    if (!adminResponse.ok) {
-                                        const error = await adminResponse.json();
+                                    if (!loginResponse.ok) {
+                                        const error = await loginResponse.json();
                                         alert(`Registration failed: ${error.error || 'Unknown error'}`);
                                         return;
                                     }
 
-                                    const adminData = await adminResponse.json();
+                                    const loginData = await loginResponse.json();
 
                                     // Store admin data in sessionStorage for use in dashboard
-                                    if (adminData.admin || adminData.data) {
-                                        const admin = adminData.admin || adminData.data;
-                                        storeAdminData(admin);
+                                    if (loginData.admin) {
+                                        storeAdminData(loginData.admin);
                                         // Ensure the name is set to the current user's name
-                                        updateAdminName(admin.name);
+                                        updateAdminName(loginData.admin.name);
                                     }
 
                                     // Clear temporary data after successful registration
@@ -150,6 +145,9 @@ export default function LoginOverlay({ show, onClose }: LoginOverlayProps) {
                                     placeholder="Enter organization name"
                                     required
                                 />
+                                <p className="text-sm text-blue-600 bg-blue-50 p-2 rounded mt-2">
+                                    ℹ️ Each organization has its own separate workspace and data.
+                                </p>
                             </div>
                         )}
                         <div>

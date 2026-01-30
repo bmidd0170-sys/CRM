@@ -28,13 +28,13 @@ const prisma = new PrismaClient({
 async function checkAdmins() {
   try {
     console.log('Checking admins in database...\n');
-    
+
     const admins = await prisma.admin.findMany({
       orderBy: { id: 'asc' }
     });
-    
+
     console.log(`Found ${admins.length} admin(s):\n`);
-    
+
     admins.forEach((admin, index) => {
       console.log(`${index + 1}. ${admin.name}`);
       console.log(`   Email: ${admin.email}`);
@@ -44,7 +44,7 @@ async function checkAdmins() {
       console.log(`   ID: ${admin.id}`);
       console.log('');
     });
-    
+
     if (admins.length === 0) {
       console.log('No admins found in database. You need to create one first!');
       console.log('\nYou can create an admin by:');

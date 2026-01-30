@@ -28,8 +28,20 @@ export default function DonationsPage() {
 
     // Fetch donations from API
     useEffect(() => {
-        fetch("/api/donations")
-            .then(res => res.json())
+        const admin = getAdminData();
+        if (!admin) return;
+        
+        fetch("/api/donations", {
+            headers: {
+                'x-admin-id': admin.id.toString()
+            }
+        })
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(`Failed to fetch donations: ${res.status}`);
+                }
+                return res.json();
+            })
             .then(data => setDonations(data))
             .catch(error => console.error('Error fetching donations:', error));
     }, []);

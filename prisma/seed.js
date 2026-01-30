@@ -26,7 +26,12 @@ function hashPassword(password) {
 }
 
 async function main() {
+  const orgName = "Helping Hands";
+  
+  console.log(`Seeding database for organization: ${orgName}`);
+
   // Admins
+  console.log('Creating admins...');
   await prisma.admin.createMany({
     data: [
       {
@@ -36,6 +41,7 @@ async function main() {
         role: "Super Admin",
         restrictions: [],
         online: true,
+        organizationName: orgName,
         changes: [
           "Created new donor: Sarah Johnson",
           "Updated campaign: Winter Relief",
@@ -49,12 +55,15 @@ async function main() {
         role: "Admin",
         restrictions: ["No Delete"],
         online: false,
+        organizationName: orgName,
         changes: ["Edited donor: Michael Chen", "Viewed report: Lapsed Donors"],
       },
     ],
   });
+  console.log('Admins created.');
 
   // Donors
+  console.log('Creating donors...');
   await prisma.donor.createMany({
     data: [
       {
@@ -64,6 +73,7 @@ async function main() {
         lastDonation: new Date("2024-12-15"),
         status: "Active",
         tags: ["Major"],
+        organizationName: orgName,
       },
       {
         name: "Michael Chen",
@@ -72,6 +82,7 @@ async function main() {
         lastDonation: new Date("2024-12-14"),
         status: "Inactive",
         tags: [],
+        organizationName: orgName,
       },
       {
         name: "Emily Rodriguez",
@@ -80,6 +91,7 @@ async function main() {
         lastDonation: new Date("2024-12-13"),
         status: "Active",
         tags: ["Major"],
+        organizationName: orgName,
       },
       {
         name: "David Park",
@@ -88,6 +100,7 @@ async function main() {
         lastDonation: new Date("2024-12-12"),
         status: "Active",
         tags: [],
+        organizationName: orgName,
       },
       {
         name: "Jennifer Williams",
@@ -96,6 +109,7 @@ async function main() {
         lastDonation: new Date("2024-12-11"),
         status: "Inactive",
         tags: [],
+        organizationName: orgName,
       },
     ],
   });
@@ -110,6 +124,7 @@ async function main() {
       endDate: new Date("2025-01-31"),
       description:
         "Providing warm clothing and food for families in need during winter.",
+      organizationName: orgName,
     },
   });
   const campaign2 = await prisma.campaign.create({
@@ -121,6 +136,7 @@ async function main() {
       endDate: new Date("2025-03-01"),
       description:
         "Supporting underprivileged children with school supplies and tuition.",
+      organizationName: orgName,
     },
   });
 
@@ -133,6 +149,7 @@ async function main() {
         description: "Our biggest fundraising event of the year!",
         image: null,
         campaignId: campaign1.id,
+        organizationName: orgName,
       },
       {
         name: "Back to School Drive",
@@ -140,34 +157,45 @@ async function main() {
         description: "Collecting supplies for students.",
         image: null,
         campaignId: campaign2.id,
+        organizationName: orgName,
       },
     ],
   });
 
   // Donations
-  const donors = await prisma.donor.findMany();
-  await prisma.donation.createMany({
-    data: [
-      {
-        amount: 500,
-        date: new Date("2024-12-15"),
-        donorId: donors[0].id,
-        campaignId: campaign1.id,
-      },
-      {
-        amount: 1000,
-        date: new Date("2024-12-13"),
-        donorId: donors[2].id,
-        campaignId: campaign2.id,
-      },
-      {
-        amount: 750,
-        date: new Date("2024-12-12"),
-        donorId: donors[3].id,
-        campaignId: campaign1.id,
-      },
-    ],
+  const donors = await prisma.donor.findMany({
+    where: { organizationName: orgName }
   });
+  
+  if (donors.length === 0) {
+    console.log('No donors found. Skipping donations.');
+  } else {
+    await prisma.donation.createMany({
+      data: [
+        {
+          amount: 500,
+          date: new Date("2024-12-15"),
+          donorId: donors[0].id,
+          campaignId: campaign1.id,
+          organizationName: orgName,
+        },
+        {
+          amount: 1000,
+          date: new Date("2024-12-13"),
+          donorId: donors[2].id,
+          campaignId: campaign2.id,
+          organizationName: orgName,
+        },
+        {
+          amount: 750,
+          date: new Date("2024-12-12"),
+          donorId: donors[3].id,
+          campaignId: campaign1.id,
+          organizationName: orgName,
+        },
+      ],
+    });
+  }
 
   // Notifications
   await prisma.notification.createMany({
@@ -177,30 +205,35 @@ async function main() {
         message: "Contact Sarah Johnson for follow-up on her recent donation.",
         date: new Date("2025-12-19"),
         read: false,
+        organizationName: orgName,
       },
       {
         type: "reminder",
         message: "Send thank you letter to Emily Rodriguez.",
         date: new Date("2025-12-20"),
         read: false,
+        organizationName: orgName,
       },
       {
         type: "admin",
         message: "Board meeting scheduled for December 22, 2025.",
         date: new Date("2025-12-22"),
         read: false,
+        organizationName: orgName,
       },
       {
         type: "reminder",
         message: "Call Michael Chen to discuss recurring donation options.",
         date: new Date("2025-12-21"),
         read: true,
+        organizationName: orgName,
       },
       {
         type: "admin",
         message: "Prepare monthly donation report for review.",
         date: new Date("2025-12-25"),
         read: false,
+        organizationName: orgName,
       },
     ],
   });

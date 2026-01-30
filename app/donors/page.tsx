@@ -32,7 +32,7 @@ export default function DonorsPage() {
     useEffect(() => {
         setCanDeleteDonors(canDelete('donors'));
         setCanEditDonors(canEdit('donors'));
-        
+
         // Get logged-in admin data
         const admin = getAdminData();
         if (admin) {
@@ -42,7 +42,12 @@ export default function DonorsPage() {
     }, []);
 
     function fetchDonors() {
-        fetch("/api/donors")
+        const currentAdminId = getAdminId();
+        fetch("/api/donors", {
+            headers: {
+                'x-admin-id': currentAdminId?.toString() || ''
+            }
+        })
             .then((res) => res.json())
             .then((data) => {
                 // Map backend data to Donor type if needed
@@ -141,191 +146,191 @@ export default function DonorsPage() {
                         <h1 className="font-bricolage text-2xl font-bold text-[#1C1917]">Donors</h1>
                         <div className="flex items-center gap-6">
                             <span className="text-[#1C1917] font-semibold">{adminName || "Loading..."}</span>
-                        <span className="text-[#57534E] text-base">ID: {adminId || "—"}</span>
-                        <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
-                    </div>
-                </div>
-                {/* Content */}
-                <div className="p-8">
-                    <section className="mb-10 animate-fadeInUp">
-                        <h2 className="font-bricolage text-xl font-semibold text-[#1C1917] mb-4">All Donors</h2>
-                        <div className="flex gap-4 mb-6">
-                            <input
-                                type="text"
-                                placeholder="Search donors..."
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                                className="border border-[#E2E8F0] rounded-lg px-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-[#0F766E] text-[#1C1917]"
-                            />
-                            {/* Status Filter */}
-                            <select
-                                value={statusFilter}
-                                onChange={e => setStatusFilter(e.target.value)}
-                                className="border border-[#E2E8F0] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#0F766E] text-[#1C1917]"
-                            >
-                                <option value="All">All Status</option>
-                                <option value="Active">Active</option>
-                                <option value="Inactive">Inactive</option>
-                            </select>
-                            {/* Type Filter */}
-                            <select
-                                value={typeFilter}
-                                onChange={e => setTypeFilter(e.target.value)}
-                                className="border border-[#E2E8F0] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#0F766E] text-[#1C1917]"
-                            >
-                                <option value="All">All Donor Types</option>
-                                <option value="Lapsed">Lapsed Donors</option>
-                                <option value="Major">Major Donors</option>
-                            </select>
-                            <select
-                                value={sort}
-                                onChange={e => setSort(e.target.value)}
-                                className="border border-[#E2E8F0] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#0F766E] text-[#1C1917]"
-                            >
-                                <option value="Latest">Latest Donation</option>
-                                <option value="Active">Status</option>
-                            </select>
+                            <span className="text-[#57534E] text-base">ID: {adminId || "—"}</span>
+                            <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
                         </div>
-                        <DonorStats donors={filteredDonors} isLapsed={isLapsed} />
-                        <div className="bg-white border border-[#E2E8F0] rounded-xl overflow-hidden">
-                            <table className="w-full text-left">
-                                <thead className="bg-[#F8FAFC]">
-                                    <tr>
-                                        <th className="py-4 px-6 text-[#1C1917] text-xs font-semibold uppercase">Name</th>
-                                        <th className="py-4 px-6 text-[#1C1917] text-xs font-semibold uppercase">Email</th>
-                                        <th className="py-4 px-6 text-[#1C1917] text-xs font-semibold uppercase">Total Donated</th>
-                                        <th className="py-4 px-6 text-[#1C1917] text-xs font-semibold uppercase">Last Donation</th>
-                                        <th className="py-4 px-6 text-[#1C1917] text-xs font-semibold uppercase">Status</th>
-                                        {(canDeleteDonors || canEditDonors) && <th className="py-4 px-6 text-[#1C1917] text-xs font-semibold uppercase">Actions</th>}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredDonors.map((donor) => (
-                                        <tr
-                                            key={donor.email}
-                                            className="hover:bg-[#F8FAFC] transition cursor-pointer"
-                                            onClick={() => setSelectedDonor(donor)}
-                                        >
-                                            <td className="py-4 px-6 font-semibold text-[#0F766E]">{donor.name}</td>
-                                            <td className="py-4 px-6 text-[#1C1917]">{donor.email}</td>
-                                            <td className="py-4 px-6 font-semibold text-[#10B981]">{donor.total}</td>
-                                            <td className="py-4 px-6 text-[#1C1917]">{donor.lastDonation}</td>
-                                            <td className="py-4 px-6 flex gap-2 flex-wrap">
-                                                {/* Status tag */}
-                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${donor.status === "Active" ? "bg-[#D1FAE5] text-[#065F46]" : "bg-[#FDE68A] text-[#92400E]"}`}>
-                                                    {donor.status}
-                                                </span>
-                                                {/* Major tag */}
-                                                {parseCurrency(donor.total) >= 2000 && (
-                                                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#A7F3D0] text-[#047857]">Major</span>
-                                                )}
-                                                {/* Lapsed tag */}
-                                                {isLapsed(donor.lastDonation) && (
-                                                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#E0E7FF] text-[#3730A3]">Lapsed</span>
-                                                )}
-                                            </td>
-                                            {(canDeleteDonors || canEditDonors) && (
-                                                <td className="py-4 px-6" onClick={(e) => e.stopPropagation()}>
-                                                    {canEditDonors && (
-                                                        <button
-                                                            onClick={(e) => handleEditClick(donor, e)}
-                                                            className="bg-[#0F766E] text-white px-3 py-1 rounded-md text-xs hover:bg-[#0D5B54] transition mr-3"
-                                                        >
-                                                            Edit
-                                                        </button>
+                    </div>
+                    {/* Content */}
+                    <div className="p-8">
+                        <section className="mb-10 animate-fadeInUp">
+                            <h2 className="font-bricolage text-xl font-semibold text-[#1C1917] mb-4">All Donors</h2>
+                            <div className="flex gap-4 mb-6">
+                                <input
+                                    type="text"
+                                    placeholder="Search donors..."
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                    className="border border-[#E2E8F0] rounded-lg px-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-[#0F766E] text-[#1C1917]"
+                                />
+                                {/* Status Filter */}
+                                <select
+                                    value={statusFilter}
+                                    onChange={e => setStatusFilter(e.target.value)}
+                                    className="border border-[#E2E8F0] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#0F766E] text-[#1C1917]"
+                                >
+                                    <option value="All">All Status</option>
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                </select>
+                                {/* Type Filter */}
+                                <select
+                                    value={typeFilter}
+                                    onChange={e => setTypeFilter(e.target.value)}
+                                    className="border border-[#E2E8F0] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#0F766E] text-[#1C1917]"
+                                >
+                                    <option value="All">All Donor Types</option>
+                                    <option value="Lapsed">Lapsed Donors</option>
+                                    <option value="Major">Major Donors</option>
+                                </select>
+                                <select
+                                    value={sort}
+                                    onChange={e => setSort(e.target.value)}
+                                    className="border border-[#E2E8F0] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#0F766E] text-[#1C1917]"
+                                >
+                                    <option value="Latest">Latest Donation</option>
+                                    <option value="Active">Status</option>
+                                </select>
+                            </div>
+                            <DonorStats donors={filteredDonors} isLapsed={isLapsed} />
+                            <div className="bg-white border border-[#E2E8F0] rounded-xl overflow-hidden">
+                                <table className="w-full text-left">
+                                    <thead className="bg-[#F8FAFC]">
+                                        <tr>
+                                            <th className="py-4 px-6 text-[#1C1917] text-xs font-semibold uppercase">Name</th>
+                                            <th className="py-4 px-6 text-[#1C1917] text-xs font-semibold uppercase">Email</th>
+                                            <th className="py-4 px-6 text-[#1C1917] text-xs font-semibold uppercase">Total Donated</th>
+                                            <th className="py-4 px-6 text-[#1C1917] text-xs font-semibold uppercase">Last Donation</th>
+                                            <th className="py-4 px-6 text-[#1C1917] text-xs font-semibold uppercase">Status</th>
+                                            {(canDeleteDonors || canEditDonors) && <th className="py-4 px-6 text-[#1C1917] text-xs font-semibold uppercase">Actions</th>}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredDonors.map((donor) => (
+                                            <tr
+                                                key={donor.email}
+                                                className="hover:bg-[#F8FAFC] transition cursor-pointer"
+                                                onClick={() => setSelectedDonor(donor)}
+                                            >
+                                                <td className="py-4 px-6 font-semibold text-[#0F766E]">{donor.name}</td>
+                                                <td className="py-4 px-6 text-[#1C1917]">{donor.email}</td>
+                                                <td className="py-4 px-6 font-semibold text-[#10B981]">{donor.total}</td>
+                                                <td className="py-4 px-6 text-[#1C1917]">{donor.lastDonation}</td>
+                                                <td className="py-4 px-6 flex gap-2 flex-wrap">
+                                                    {/* Status tag */}
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${donor.status === "Active" ? "bg-[#D1FAE5] text-[#065F46]" : "bg-[#FDE68A] text-[#92400E]"}`}>
+                                                        {donor.status}
+                                                    </span>
+                                                    {/* Major tag */}
+                                                    {parseCurrency(donor.total) >= 2000 && (
+                                                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#A7F3D0] text-[#047857]">Major</span>
                                                     )}
-                                                    {canDeleteDonors && (
-                                                        <button
-                                                            onClick={(e) => donor.id && handleDelete(donor.id, e)}
-                                                            className="bg-rose-500 text-white px-3 py-1 rounded-md text-xs hover:bg-rose-600 transition"
-                                                        >
-                                                            Delete
-                                                        </button>
+                                                    {/* Lapsed tag */}
+                                                    {isLapsed(donor.lastDonation) && (
+                                                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#E0E7FF] text-[#3730A3]">Lapsed</span>
                                                     )}
                                                 </td>
-                                            )}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                        {/* Donor Details Modal */}
-                        {selectedDonor && (
-                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                                <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative animate-fadeInUp text-[#1C1917]">
-                                    <button
-                                        className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl font-bold"
-                                        onClick={() => setSelectedDonor(null)}
-                                        aria-label="Close"
-                                    >
-                                        &times;
-                                    </button>
-                                    <h2 className="text-2xl font-bold mb-4 text-center text-[#0F766E]">Donor Profile</h2>
-                                    <div className="mb-2"><span className="font-semibold">Name:</span> {selectedDonor.name}</div>
-                                    <div className="mb-2"><span className="font-semibold">Email:</span> {selectedDonor.email}</div>
-                                    <div className="mb-2"><span className="font-semibold">Total Donated:</span> {selectedDonor.total}</div>
-                                    <div className="mb-2"><span className="font-semibold">Last Donation:</span> {selectedDonor.lastDonation}</div>
-                                    <div className="mb-2"><span className="font-semibold">Status:</span> {selectedDonor.status}</div>
-                                    <div className="mt-4">
-                                        <h3 className="font-semibold mb-2">Donation History</h3>
-                                        <ul className="list-disc pl-5 text-sm">
-                                            <li>Dec 15, 2024 - $500</li>
-                                            <li>Nov 10, 2024 - $1,000</li>
-                                            <li>Oct 5, 2024 - $1,000</li>
-                                        </ul>
-                                    </div>
-                                    {(canDeleteDonors || canEditDonors) && (
-                                        <div className="mt-6 pt-4 border-t border-gray-200 flex gap-2">
-                                            {canEditDonors && selectedDonor.id && (
-                                                <button
-                                                    onClick={() => {
-                                                        setEditingDonor(selectedDonor);
-                                                        setShowForm(true);
-                                                        setSelectedDonor(null);
-                                                    }}
-                                                    className="flex-1 bg-[#0F766E] text-white px-4 py-2 rounded-md font-medium hover:bg-[#0D5B54] transition"
-                                                >
-                                                    Edit Donor
-                                                </button>
-                                            )}
-                                            {canDeleteDonors && selectedDonor.id && (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDelete(selectedDonor.id!, e);
-                                                    }}
-                                                    className="flex-1 bg-rose-500 text-white px-4 py-2 rounded-md font-medium hover:bg-rose-600 transition"
-                                                >
-                                                    Delete Donor
-                                                </button>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
+                                                {(canDeleteDonors || canEditDonors) && (
+                                                    <td className="py-4 px-6" onClick={(e) => e.stopPropagation()}>
+                                                        {canEditDonors && (
+                                                            <button
+                                                                onClick={(e) => handleEditClick(donor, e)}
+                                                                className="bg-[#0F766E] text-white px-3 py-1 rounded-md text-xs hover:bg-[#0D5B54] transition mr-3"
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                        )}
+                                                        {canDeleteDonors && (
+                                                            <button
+                                                                onClick={(e) => donor.id && handleDelete(donor.id, e)}
+                                                                className="bg-rose-500 text-white px-3 py-1 rounded-md text-xs hover:bg-rose-600 transition"
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                )}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
-                        )}
-                    </section>
-                </div>
-            </main>
-            {showForm && (
-                <DonorForm
-                    donor={editingDonor ? {
-                        id: editingDonor.id || 0,
-                        name: editingDonor.name,
-                        email: editingDonor.email,
-                        status: editingDonor.status
-                    } : null}
-                    onSave={() => {
-                        setShowForm(false);
-                        setEditingDonor(null);
-                        fetchDonors();
-                    }}
-                    onClose={() => {
-                        setShowForm(false);
-                        setEditingDonor(null);
-                    }}
-                />
-            )}
+                            {/* Donor Details Modal */}
+                            {selectedDonor && (
+                                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                                    <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative animate-fadeInUp text-[#1C1917]">
+                                        <button
+                                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl font-bold"
+                                            onClick={() => setSelectedDonor(null)}
+                                            aria-label="Close"
+                                        >
+                                            &times;
+                                        </button>
+                                        <h2 className="text-2xl font-bold mb-4 text-center text-[#0F766E]">Donor Profile</h2>
+                                        <div className="mb-2"><span className="font-semibold">Name:</span> {selectedDonor.name}</div>
+                                        <div className="mb-2"><span className="font-semibold">Email:</span> {selectedDonor.email}</div>
+                                        <div className="mb-2"><span className="font-semibold">Total Donated:</span> {selectedDonor.total}</div>
+                                        <div className="mb-2"><span className="font-semibold">Last Donation:</span> {selectedDonor.lastDonation}</div>
+                                        <div className="mb-2"><span className="font-semibold">Status:</span> {selectedDonor.status}</div>
+                                        <div className="mt-4">
+                                            <h3 className="font-semibold mb-2">Donation History</h3>
+                                            <ul className="list-disc pl-5 text-sm">
+                                                <li>Dec 15, 2024 - $500</li>
+                                                <li>Nov 10, 2024 - $1,000</li>
+                                                <li>Oct 5, 2024 - $1,000</li>
+                                            </ul>
+                                        </div>
+                                        {(canDeleteDonors || canEditDonors) && (
+                                            <div className="mt-6 pt-4 border-t border-gray-200 flex gap-2">
+                                                {canEditDonors && selectedDonor.id && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingDonor(selectedDonor);
+                                                            setShowForm(true);
+                                                            setSelectedDonor(null);
+                                                        }}
+                                                        className="flex-1 bg-[#0F766E] text-white px-4 py-2 rounded-md font-medium hover:bg-[#0D5B54] transition"
+                                                    >
+                                                        Edit Donor
+                                                    </button>
+                                                )}
+                                                {canDeleteDonors && selectedDonor.id && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDelete(selectedDonor.id!, e);
+                                                        }}
+                                                        className="flex-1 bg-rose-500 text-white px-4 py-2 rounded-md font-medium hover:bg-rose-600 transition"
+                                                    >
+                                                        Delete Donor
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </section>
+                    </div>
+                </main>
+                {showForm && (
+                    <DonorForm
+                        donor={editingDonor ? {
+                            id: editingDonor.id || 0,
+                            name: editingDonor.name,
+                            email: editingDonor.email,
+                            status: editingDonor.status
+                        } : null}
+                        onSave={() => {
+                            setShowForm(false);
+                            setEditingDonor(null);
+                            fetchDonors();
+                        }}
+                        onClose={() => {
+                            setShowForm(false);
+                            setEditingDonor(null);
+                        }}
+                    />
+                )}
             </div>
         </ProtectedPage>
     );

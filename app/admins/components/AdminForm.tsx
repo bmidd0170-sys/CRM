@@ -53,7 +53,7 @@ export default function AdminForm({ onCreated }: AdminFormProps) {
       console.log('Creating admin with data:', { ...data, password: '[HIDDEN]' });
       const res = await fetch("/api/admins", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           'x-admin-id': adminId?.toString() || ''
         },
@@ -67,15 +67,15 @@ export default function AdminForm({ onCreated }: AdminFormProps) {
       }
       const result = await res.json();
       console.log('Admin created successfully:', result);
-      
+
       // Reset form
       setForm({ name: "", email: "", role: "Admin", restrictions: "", online: false, organizationName: "", password: "", confirmPassword: "" });
-      
+
       // Call the onCreated callback to refresh the parent component
       if (onCreated) {
         onCreated(data);
       }
-      
+
       // Show success message
       alert('Admin created successfully!');
     } catch (err: any) {

@@ -36,9 +36,14 @@ export default function Dashboard() {
         const fetchData = async () => {
             setLoading(true);
             try {
+                const currentAdminId = getAdminId();
+                const headers = {
+                    'x-admin-id': currentAdminId?.toString() || ''
+                };
+
                 const [donorsRes, donationsRes] = await Promise.all([
-                    fetch(`/api/donors`),
-                    fetch(`/api/donations`)
+                    fetch(`/api/donors`, { headers }),
+                    fetch(`/api/donations`, { headers })
                 ]);
 
                 if (donorsRes.ok) {
@@ -56,12 +61,12 @@ export default function Dashboard() {
                         ? donations.sort((a, b) => (b.amount || 0) - (a.amount || 0)).slice(0, 5)
                         : [];
                     setTopDonations(sortedDonations);
-                    
+
                     const totalAmount = Array.isArray(donations)
                         ? donations.reduce((sum, d) => sum + (d.amount || 0), 0)
                         : 0;
-                    setStats(prev => ({ 
-                        ...prev, 
+                    setStats(prev => ({
+                        ...prev,
                         totalDonations: `$${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                     }));
                 } else {

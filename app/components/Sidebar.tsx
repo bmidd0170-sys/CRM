@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
-import { isSuperAdmin, canAccessScreen } from "@/lib/admin-storage";
+import { isSuperAdmin, canAccessScreen, getAdminId } from "@/lib/admin-storage";
 
 const baseMenu = [
     { icon: "📊", label: "Dashboard", href: "/dashboard" },
@@ -32,7 +32,12 @@ export default function Sidebar({ active }: { active: string }) {
 
     useEffect(() => {
         // Fetch the first admin's organization name
-        fetch("/api/admins")
+        const currentAdminId = getAdminId();
+        fetch("/api/admins", {
+            headers: {
+                'x-admin-id': currentAdminId?.toString() || ''
+            }
+        })
             .then(res => res.json())
             .then(data => {
                 if (data && data.length > 0 && data[0].organizationName) {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma, getAdminIdFromRequest, verifyPermission } from '@/lib/db';
+import { prisma, getAdminIdFromRequest, getAdminOrganization, verifyPermission } from '@/lib/db';
 import { notificationSchema, validateData, formatValidationErrors } from '@/lib/validators';
 
 export async function GET(request: Request) {
@@ -7,11 +7,22 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     const unreadOnly = searchParams.get('unread');
+    
+    // Get admin organization
+    const adminId = getAdminIdFromRequest(request);
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+    }
 
     // Get single notification by ID
     if (id) {
-      const notification = await prisma.notification.findUnique({
-        where: { id: parseInt(id) }
+      const notification = await prisma.notification.findFirst({
+        where: { 
+          id: parseInt(id),
+          organizationName
+        }
       });
 
       if (!notification) {
@@ -22,8 +33,11 @@ export async function GET(request: Request) {
     }
 
     // Get notifications (filter by unread if specified)
+    const where: any = { organizationName };
+    if (unreadOnly === 'true') where.read = false;
+    
     const notifications = await prisma.notification.findMany({
-      where: unreadOnly === 'true' ? { read: false } : undefined,
+      where,
       orderBy: { date: 'desc' }
     });
 
@@ -46,6 +60,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: permission.error }, { status: permission.status });
     }
     console.log('[Notifications API] Permission granted');
+    
+    // Get admin organization
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+    }
 
     const data = await request.json();
 
@@ -64,7 +84,8 @@ export async function POST(request: Request) {
     // Prepare data for creation
     const notificationData = {
       ...validation.data,
-      date: new Date(validation.data.date)
+      date: new Date(validation.data.date),
+      organizationName
     };
 
     // Create notification

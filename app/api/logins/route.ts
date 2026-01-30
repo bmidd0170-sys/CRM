@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { email, password } = validation.data;
+    const { email, password, organizationName } = validation.data;
 
     // Check if admin exists with this email
     const admin = await prisma.admin.findUnique({
@@ -48,6 +48,8 @@ export async function POST(request: Request) {
 
     // If no admin exists yet, auto-provision a new Super Admin
     if (!admin) {
+      const orgName = organizationName || 'Helping Hands';
+      
       const newAdmin = await prisma.admin.create({
         data: {
           name: email.split('@')[0] || 'New Admin',
@@ -56,7 +58,7 @@ export async function POST(request: Request) {
           restrictions: [],
           online: true,
           changes: ['Account created'],
-          organizationName: 'Helping Hands',
+          organizationName: orgName,
           passwordHash: hashPassword(password)
         },
         select: adminSelect
@@ -89,7 +91,7 @@ export async function POST(request: Request) {
       select: adminSelect
     });
 
-   return NextResponse.json({
+    return NextResponse.json({
       success: true,
       admin: {
         ...updatedAdmin

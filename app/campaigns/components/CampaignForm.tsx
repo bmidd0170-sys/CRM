@@ -28,7 +28,7 @@ export default function CampaignForm({ onCreate = () => { }, onClose }: { onCrea
       const endDate = new Date(form.endDate).toISOString();
       console.log('[CampaignForm] Form data:', form);
       console.log('[CampaignForm] Dates:', { startDate, endDate });
-      
+
       const payload = {
         name: form.name,
         goal: Number(form.goal),
@@ -37,10 +37,10 @@ export default function CampaignForm({ onCreate = () => { }, onClose }: { onCrea
         description: form.description
       };
       console.log('[CampaignForm] Sending payload:', payload);
-      
+
       const res = await fetch("/api/campaigns", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           'x-admin-id': adminId?.toString() || ''
         },

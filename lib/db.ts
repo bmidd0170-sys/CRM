@@ -26,7 +26,7 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 // Helper functions for common database operations
 
-export async function checkEmailExists(email: string, model: 'admin' | 'donor') {
+export async function checkEmailExists(email: string, model: 'admin' | 'donor', organizationName?: string) {
   if (model === 'admin') {
     const record = await prisma.admin.findUnique({
       where: { email },
@@ -34,8 +34,22 @@ export async function checkEmailExists(email: string, model: 'admin' | 'donor') 
     });
     return !!record;
   } else {
+    if (!organizationName) {
+      // If no organization provided, just check email exists globally
+      const records = await prisma.donor.findMany({
+        where: { email },
+        select: { id: true }
+      });
+      return records.length > 0;
+    }
+    // Check if email exists within the specific organization
     const record = await prisma.donor.findUnique({
-      where: { email },
+      where: { 
+        email_organizationName: {
+          email,
+          organizationName
+        }
+      },
       select: { id: true }
     });
     return !!record;
@@ -94,6 +108,14 @@ export async function checkIsSuperAdmin(adminId: number): Promise<boolean> {
   return admin?.role === 'Super Admin';
 }
 
+export async function getAdminOrganization(adminId: number): Promise<string | null> {
+  const admin = await prisma.admin.findUnique({
+    where: { id: adminId },
+    select: { organizationName: true }
+  });
+  return admin?.organizationName || null;
+}
+
 export function getAdminIdFromRequest(request: Request): number | null {
   try {
     const adminIdHeader = request.headers.get('x-admin-id');
@@ -121,10 +143,10 @@ export type PermissionResource = 'donors' | 'campaigns' | 'events' | 'donations'
 export async function getAdminWithRestrictions(adminId: number) {
   return await prisma.admin.findUnique({
     where: { id: adminId },
-    select: { 
+    select: {
       id: true,
       role: true,
-      restrictions: true 
+      restrictions: true
     }
   });
 }
@@ -140,9 +162,9 @@ export async function checkPermission(
   action: PermissionAction
 ): Promise<{ allowed: boolean; reason?: string }> {
   console.log(`[Permission Check] Admin ID: ${adminId}, Resource: ${resource}, Action: ${action}`);
-  
+
   const admin = await getAdminWithRestrictions(adminId);
-  
+
   if (!admin) {
     console.log(`[Permission Check] Admin not found for ID: ${adminId}`);
     return { allowed: false, reason: 'Admin not found' };
@@ -158,7 +180,7 @@ export async function checkPermission(
 
   // Check restrictions
   const restrictions = admin.restrictions || [];
-  
+
   // Check for "No Delete" restriction
   if (action === 'delete' && restrictions.includes('No Delete')) {
     console.log(`[Permission Check] Blocked by "No Delete" restriction`);
@@ -198,7 +220,7 @@ export async function verifyPermission(
   action: PermissionAction
 ): Promise<{ authorized: true } | { authorized: false; status: number; error: string }> {
   console.log(`[Verify Permission] Called with adminId: ${adminId}, resource: ${resource}, action: ${action}`);
-  
+
   if (!adminId) {
     console.log(`[Verify Permission] No admin ID provided - returning 401`);
     return {
@@ -209,7 +231,7 @@ export async function verifyPermission(
   }
 
   const permission = await checkPermission(adminId, resource, action);
-  
+
   if (!permission.allowed) {
     console.log(`[Verify Permission] Permission denied - returning 403`);
     return {

@@ -2,19 +2,30 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    // This endpoint clears all temporary/static data when a new admin registers
-    // It resets the temporary donations data and other cached information
+    const data = await request.json();
+    const { fullClear = false } = data;
 
-    // Since we're using static data files in app/donations/data.ts and app/campaigns/donationsData.ts,
-    // we can't directly clear them at runtime. However, this endpoint signals that
-    // the application should clear any in-memory caches or session storage.
+    // If fullClear is requested, delete all data from the database
+    if (fullClear) {
+      const { prisma } = await import('@/lib/db');
+      
+      await prisma.$transaction([
+        prisma.donation.deleteMany({}),
+        prisma.event.deleteMany({}),
+        prisma.campaign.deleteMany({}),
+        prisma.notification.deleteMany({}),
+        prisma.donor.deleteMany({}),
+        prisma.admin.deleteMany({})
+      ]);
+      
+      return NextResponse.json({
+        message: 'All data cleared successfully',
+        success: true,
+        fullClear: true
+      });
+    }
 
-    // In a real application, you might:
-    // 1. Clear Redis cache
-    // 2. Clear session storage
-    // 3. Reset temporary collections in the database
-    // 4. Clear browser localStorage/sessionStorage on the client side
-
+    // Otherwise just signal cache clearing for client-side
     return NextResponse.json({
       message: 'Temporary data cleared successfully',
       success: true

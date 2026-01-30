@@ -1,16 +1,27 @@
 import { NextResponse } from 'next/server';
-import { prisma, getAdminIdFromRequest, verifyPermission } from '@/lib/db';
+import { prisma, getAdminIdFromRequest, getAdminOrganization, verifyPermission } from '@/lib/db';
 import { campaignSchema, validateData, formatValidationErrors } from '@/lib/validators';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
+    
+    // Get admin organization
+    const adminId = getAdminIdFromRequest(request);
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+    }
 
     // Get single campaign by ID
     if (id) {
-      const campaign = await prisma.campaign.findUnique({
-        where: { id: parseInt(id) },
+      const campaign = await prisma.campaign.findFirst({
+        where: { 
+          id: parseInt(id),
+          organizationName
+        },
         include: { events: true, donations: true }
       });
 
@@ -21,8 +32,9 @@ export async function GET(request: Request) {
       return NextResponse.json(campaign);
     }
 
-    // Get all campaigns
+    // Get all campaigns for this organization
     const campaigns = await prisma.campaign.findMany({
+      where: { organizationName },
       include: { events: true, donations: true },
       orderBy: { id: 'asc' }
     });
@@ -46,6 +58,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: permission.error }, { status: permission.status });
     }
     console.log('[Campaigns API] Permission granted');
+    
+    // Get admin organization
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+    }
 
     const data = await request.json();
     console.log('[Campaigns API] Received data:', JSON.stringify(data, null, 2));
@@ -78,7 +96,8 @@ export async function POST(request: Request) {
     const campaignData = {
       ...validation.data,
       startDate: new Date(validation.data.startDate),
-      endDate: new Date(validation.data.endDate)
+      endDate: new Date(validation.data.endDate),
+      organizationName
     };
 
     // Create campaign
@@ -105,6 +124,12 @@ export async function PUT(request: Request) {
     if (!permission.authorized) {
       return NextResponse.json({ error: permission.error }, { status: permission.status });
     }
+    
+    // Get admin organization
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+    }
 
     const data = await request.json();
     const { id, ...updateData } = data;
@@ -125,9 +150,12 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Check if campaign exists
-    const existingCampaign = await prisma.campaign.findUnique({
-      where: { id: parseInt(id) }
+    // Check if campaign exists in this organization
+    const existingCampaign = await prisma.campaign.findFirst({
+      where: { 
+        id: parseInt(id),
+        organizationName
+      }
     });
 
     if (!existingCampaign) {
@@ -173,10 +201,19 @@ export async function DELETE(request: Request) {
     if (!permission.authorized) {
       return NextResponse.json({ error: permission.error }, { status: permission.status });
     }
+    
+    // Get admin organization
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+    }
 
-    // Check if campaign exists
-    const existingCampaign = await prisma.campaign.findUnique({
-      where: { id: parseInt(id) }
+    // Check if campaign exists in this organization
+    const existingCampaign = await prisma.campaign.findFirst({
+      where: { 
+        id: parseInt(id),
+        organizationName
+      }
     });
 
     if (!existingCampaign) {

@@ -28,7 +28,7 @@ export function isPathAllowed(pathname: string, restrictions: string[], isSuperA
 
   // Get the restrictions for this path
   const pathRestrictions = screenAccessMap[pathname] || [];
-  
+
   // If any restriction applies, deny access
   if (pathRestrictions.some(r => restrictions.includes(r))) {
     return false;

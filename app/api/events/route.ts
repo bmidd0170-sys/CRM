@@ -1,16 +1,27 @@
 import { NextResponse } from 'next/server';
-import { prisma, checkCampaignExists, getAdminIdFromRequest, verifyPermission } from '@/lib/db';
+import { prisma, checkCampaignExists, getAdminIdFromRequest, getAdminOrganization, verifyPermission } from '@/lib/db';
 import { eventSchema, validateData, formatValidationErrors } from '@/lib/validators';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
+    
+    // Get admin organization
+    const adminId = getAdminIdFromRequest(request);
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+    }
 
     // Get single event by ID
     if (id) {
-      const event = await prisma.event.findUnique({
-        where: { id: parseInt(id) },
+      const event = await prisma.event.findFirst({
+        where: { 
+          id: parseInt(id),
+          organizationName
+        },
         include: { campaign: true }
       });
 
@@ -21,8 +32,9 @@ export async function GET(request: Request) {
       return NextResponse.json(event);
     }
 
-    // Get all events
+    // Get all events for this organization
     const events = await prisma.event.findMany({
+      where: { organizationName },
       include: { campaign: true },
       orderBy: { date: 'desc' }
     });
@@ -45,6 +57,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: permission.error }, { status: permission.status });
     }
     console.log('[Events API] Permission granted');
+    
+    // Get admin organization
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+    }
 
     const data = await request.json();
 
@@ -74,7 +92,8 @@ export async function POST(request: Request) {
     // Prepare data for creation
     const eventData = {
       ...validation.data,
-      date: new Date(validation.data.date)
+      date: new Date(validation.data.date),
+      organizationName
     };
 
     // Create event
@@ -101,6 +120,12 @@ export async function PUT(request: Request) {
     if (!permission.authorized) {
       return NextResponse.json({ error: permission.error }, { status: permission.status });
     }
+    
+    // Get admin organization
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+    }
 
     const data = await request.json();
     const { id, ...updateData } = data;
@@ -121,9 +146,12 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Check if event exists
-    const existingEvent = await prisma.event.findUnique({
-      where: { id: parseInt(id) }
+    // Check if event exists in this organization
+    const existingEvent = await prisma.event.findFirst({
+      where: { 
+        id: parseInt(id),
+        organizationName
+      }
     });
 
     if (!existingEvent) {
@@ -179,10 +207,19 @@ export async function DELETE(request: Request) {
     if (!permission.authorized) {
       return NextResponse.json({ error: permission.error }, { status: permission.status });
     }
+    
+    // Get admin organization
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+    }
 
-    // Check if event exists
-    const existingEvent = await prisma.event.findUnique({
-      where: { id: parseInt(id) }
+    // Check if event exists in this organization
+    const existingEvent = await prisma.event.findFirst({
+      where: { 
+        id: parseInt(id),
+        organizationName
+      }
     });
 
     if (!existingEvent) {

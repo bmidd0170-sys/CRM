@@ -4,9 +4,9 @@ import { prisma, getAdminIdFromRequest } from '@/lib/db';
 export async function GET(request: Request) {
   try {
     const adminId = getAdminIdFromRequest(request);
-    
+
     console.log('[Debug] Admin ID from request:', adminId);
-    
+
     if (!adminId) {
       return NextResponse.json({
         authenticated: false,

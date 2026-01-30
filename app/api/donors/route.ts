@@ -1,16 +1,27 @@
 import { NextResponse } from 'next/server';
-import { prisma, checkEmailExists, getAdminIdFromRequest, verifyPermission } from '@/lib/db';
+import { prisma, checkEmailExists, getAdminIdFromRequest, getAdminOrganization, verifyPermission } from '@/lib/db';
 import { donorSchema, validateData, formatValidationErrors } from '@/lib/validators';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
+    
+    // Get admin organization
+    const adminId = getAdminIdFromRequest(request);
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+    }
 
     // Get single donor by ID
     if (id) {
-      const donor = await prisma.donor.findUnique({
-        where: { id: parseInt(id) },
+      const donor = await prisma.donor.findFirst({
+        where: { 
+          id: parseInt(id),
+          organizationName
+        },
         include: { donations: true }
       });
 
@@ -21,8 +32,9 @@ export async function GET(request: Request) {
       return NextResponse.json(donor);
     }
 
-    // Get all donors
+    // Get all donors for this organization
     const donors = await prisma.donor.findMany({
+      where: { organizationName },
       include: { donations: true },
       orderBy: { id: 'asc' }
     });
@@ -45,6 +57,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: permission.error }, { status: permission.status });
     }
     console.log('[Donors API] Permission granted');
+    
+    // Get admin organization
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+    }
 
     const data = await request.json();
 
@@ -60,11 +78,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if email already exists
-    const emailExists = await checkEmailExists(validation.data.email, 'donor');
+    // Check if email already exists in this organization
+    const emailExists = await checkEmailExists(validation.data.email, 'donor', organizationName);
     if (emailExists) {
       return NextResponse.json(
-        { error: 'A donor with this email already exists' },
+        { error: 'A donor with this email already exists in your organization' },
         { status: 409 }
       );
     }
@@ -72,7 +90,8 @@ export async function POST(request: Request) {
     // Prepare data for creation
     const donorData = {
       ...validation.data,
-      lastDonation: validation.data.lastDonation ? new Date(validation.data.lastDonation) : null
+      lastDonation: validation.data.lastDonation ? new Date(validation.data.lastDonation) : null,
+      organizationName
     };
 
     // Create donor
@@ -99,6 +118,12 @@ export async function PUT(request: Request) {
     if (!permission.authorized) {
       return NextResponse.json({ error: permission.error }, { status: permission.status });
     }
+    
+    // Get admin organization
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+    }
 
     const data = await request.json();
     const { id, ...updateData } = data;
@@ -119,9 +144,12 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Check if donor exists
-    const existingDonor = await prisma.donor.findUnique({
-      where: { id: parseInt(id) }
+    // Check if donor exists in this organization
+    const existingDonor = await prisma.donor.findFirst({
+      where: { 
+        id: parseInt(id),
+        organizationName
+      }
     });
 
     if (!existingDonor) {
@@ -130,10 +158,10 @@ export async function PUT(request: Request) {
 
     // Check email uniqueness if email is being updated
     if (validation.data.email && validation.data.email !== existingDonor.email) {
-      const emailExists = await checkEmailExists(validation.data.email, 'donor');
+      const emailExists = await checkEmailExists(validation.data.email, 'donor', organizationName);
       if (emailExists) {
         return NextResponse.json(
-          { error: 'A donor with this email already exists' },
+          { error: 'A donor with this email already exists in your organization' },
           { status: 409 }
         );
       }
@@ -177,10 +205,19 @@ export async function DELETE(request: Request) {
     if (!permission.authorized) {
       return NextResponse.json({ error: permission.error }, { status: permission.status });
     }
+    
+    // Get admin organization
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+    }
 
-    // Check if donor exists
-    const existingDonor = await prisma.donor.findUnique({
-      where: { id: parseInt(id) }
+    // Check if donor exists in this organization
+    const existingDonor = await prisma.donor.findFirst({
+      where: { 
+        id: parseInt(id),
+        organizationName
+      }
     });
 
     if (!existingDonor) {

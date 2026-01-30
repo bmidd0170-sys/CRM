@@ -10,7 +10,7 @@ export default function DebugAuthPage() {
     setLoading(true);
     const adminId = getAdminId();
     const adminData = getAdminData();
-    
+
     console.log('Client-side admin ID:', adminId);
     console.log('Client-side admin data:', adminData);
 
@@ -19,7 +19,7 @@ export default function DebugAuthPage() {
         'x-admin-id': adminId?.toString() || ''
       }
     });
-    
+
     const data = await res.json();
     setResult({
       clientSide: {
@@ -34,8 +34,8 @@ export default function DebugAuthPage() {
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-4">Authentication Debug</h1>
-      
-      <button 
+
+      <button
         onClick={checkAuth}
         disabled={loading}
         className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"

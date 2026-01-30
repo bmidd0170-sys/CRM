@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import ProtectedPage from "../components/ProtectedPage";
 import EventForm from "./components/EventForm";
-import { canDelete, canCreate, canEdit, getAdminId, handleLogout } from "@/lib/admin-storage";
+import { canDelete, canCreate, canEdit, getAdminId, handleLogout, getAdminData } from "@/lib/admin-storage";
 
 // Example recipients (could be fetched from API or state)
 const recipientsList = [
@@ -22,16 +22,30 @@ export default function EventsPage() {
     const [canDeleteEvents, setCanDeleteEvents] = useState(false);
     const [canCreateEvents, setCanCreateEvents] = useState(false);
     const [canEditEvents, setCanEditEvents] = useState(false);
+    const [adminName, setAdminName] = useState("");
+    const [adminId, setAdminId] = useState("");
 
     useEffect(() => {
         setCanDeleteEvents(canDelete('events'));
         setCanCreateEvents(canCreate('events'));
         setCanEditEvents(canEdit('events'));
+
+        // Get logged-in admin data
+        const admin = getAdminData();
+        if (admin) {
+            setAdminName(admin.name);
+            setAdminId(admin.id.toString());
+        }
     }, []);
 
     // Fetch events from API
     function fetchEvents() {
-        fetch("/api/events")
+        const currentAdminId = getAdminId();
+        fetch("/api/events", {
+            headers: {
+                'x-admin-id': currentAdminId?.toString() || ''
+            }
+        })
             .then(res => res.json())
             .then(data => setEvents(data))
             .catch(error => console.error('Error fetching events:', error));
@@ -55,13 +69,13 @@ export default function EventsPage() {
 
             const adminId = getAdminId();
             const method = editingEvent ? 'PUT' : 'POST';
-            const body = editingEvent 
+            const body = editingEvent
                 ? { ...payload, id: editingEvent.id }
                 : payload;
 
             const res = await fetch("/api/events", {
                 method,
-                headers: { 
+                headers: {
                     "Content-Type": "application/json",
                     'x-admin-id': adminId?.toString() || ''
                 },
@@ -129,74 +143,78 @@ export default function EventsPage() {
                 <Sidebar active="Events" />
                 <main className="flex-1 min-h-screen ml-[260px]">
                     <div className="bg-white border-b border-[#E2E8F0] px-8 py-5 flex justify-between items-center sticky top-0 z-40 animate-slideInDown">
-                    <h1 className="font-bricolage text-2xl font-bold text-[#1C1917]">Events</h1>
-                    <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
-                </div>
-                <div className="p-8">
-                    <div className="flex justify-between items-center mb-8">
-                        <h2 className="text-xl font-semibold text-[#1C1917]">Upcoming Events</h2>
-                        {canCreateEvents && (
-                            <button
-                                className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition"
-                                onClick={() => setShowForm(true)}
-                            >
-                                + Create Event
-                            </button>
+                        <h1 className="font-bricolage text-2xl font-bold text-[#1C1917]">Events</h1>
+                        <div className="flex items-center gap-6">
+                            <span className="text-[#1C1917] font-semibold">{adminName || "Loading..."}</span>
+                            <span className="text-[#57534E] text-base">ID: {adminId || "—"}</span>
+                            <button onClick={handleLogout} className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition">Logout</button>
+                        </div>
+                    </div>
+                    <div className="p-8">
+                        <div className="flex justify-between items-center mb-8">
+                            <h2 className="text-xl font-semibold text-[#1C1917]">Upcoming Events</h2>
+                            {canCreateEvents && (
+                                <button
+                                    className="bg-[#0F766E] text-white px-5 py-2 rounded-md font-medium text-sm hover:bg-[#0D5B54] transition"
+                                    onClick={() => setShowForm(true)}
+                                >
+                                    + Create Event
+                                </button>
+                            )}
+                        </div>
+                        {showForm && (
+                            <EventForm
+                                onCreate={handleCreate}
+                                onClose={() => {
+                                    setShowForm(false);
+                                    setEditingEvent(null);
+                                }}
+                                recipients={recipientsList}
+                                event={editingEvent}
+                            />
                         )}
+                        <div className="grid gap-6 md:grid-cols-2">
+                            {events.map((event) => (
+                                <div
+                                    key={event.id}
+                                    className="bg-white border border-[#E2E8F0] rounded-lg p-6 shadow-sm relative"
+                                >
+                                    {canDeleteEvents && (
+                                        <button
+                                            onClick={(e) => handleDelete(event.id, e)}
+                                            className="absolute top-4 right-16 bg-rose-500 text-white px-3 py-1 rounded-md text-xs hover:bg-rose-600 transition"
+                                            title="Delete Event"
+                                        >
+                                            Delete
+                                        </button>
+                                    )}
+                                    {canEditEvents && (
+                                        <button
+                                            onClick={(e) => handleEditClick(event, e)}
+                                            className="absolute top-4 right-4 bg-[#0F766E] text-white px-3 py-1 rounded-md text-xs hover:bg-[#0D5B54] transition"
+                                            title="Edit Event"
+                                        >
+                                            Edit
+                                        </button>
+                                    )}
+                                    {event.image && (
+                                        <img src={event.image} alt={event.name} className="mb-4 max-h-40 rounded w-full object-cover" />
+                                    )}
+                                    <h3 className="text-lg font-bold text-[#1C1917] mb-2">{event.name}</h3>
+                                    <p className="mb-3 text-[#334155]">{event.description}</p>
+                                    <span className="text-sm font-semibold text-[#0F766E] block mb-3">
+                                        {new Date(event.date).toLocaleDateString()}
+                                    </span>
+                                    {event.campaign && (
+                                        <div className="text-sm text-[#64748B]">
+                                            Campaign: {event.campaign.name}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                    {showForm && (
-                        <EventForm
-                            onCreate={handleCreate}
-                            onClose={() => {
-                                setShowForm(false);
-                                setEditingEvent(null);
-                            }}
-                            recipients={recipientsList}
-                            event={editingEvent}
-                        />
-                    )}
-                    <div className="grid gap-6 md:grid-cols-2">
-                        {events.map((event) => (
-                            <div
-                                key={event.id}
-                                className="bg-white border border-[#E2E8F0] rounded-lg p-6 shadow-sm relative"
-                            >
-                                {canDeleteEvents && (
-                                    <button
-                                        onClick={(e) => handleDelete(event.id, e)}
-                                        className="absolute top-4 right-16 bg-rose-500 text-white px-3 py-1 rounded-md text-xs hover:bg-rose-600 transition"
-                                        title="Delete Event"
-                                    >
-                                        Delete
-                                    </button>
-                                )}
-                                {canEditEvents && (
-                                    <button
-                                        onClick={(e) => handleEditClick(event, e)}
-                                        className="absolute top-4 right-4 bg-[#0F766E] text-white px-3 py-1 rounded-md text-xs hover:bg-[#0D5B54] transition"
-                                        title="Edit Event"
-                                    >
-                                        Edit
-                                    </button>
-                                )}
-                                {event.image && (
-                                    <img src={event.image} alt={event.name} className="mb-4 max-h-40 rounded w-full object-cover" />
-                                )}
-                                <h3 className="text-lg font-bold text-[#1C1917] mb-2">{event.name}</h3>
-                                <p className="mb-3 text-[#334155]">{event.description}</p>
-                                <span className="text-sm font-semibold text-[#0F766E] block mb-3">
-                                    {new Date(event.date).toLocaleDateString()}
-                                </span>
-                                {event.campaign && (
-                                    <div className="text-sm text-[#64748B]">
-                                        Campaign: {event.campaign.name}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </main>
+                </main>
             </div>
         </ProtectedPage>
     );

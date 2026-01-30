@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma, checkCampaignExists, checkDonorExists, updateDonorTotal, updateCampaignRaised, getAdminIdFromRequest, verifyPermission } from '@/lib/db';
+import { prisma, checkCampaignExists, checkDonorExists, updateDonorTotal, updateCampaignRaised, getAdminIdFromRequest, getAdminOrganization, verifyPermission } from '@/lib/db';
 import { donationSchema, validateData, formatValidationErrors } from '@/lib/validators';
 
 export async function GET(request: Request) {
@@ -8,11 +8,22 @@ export async function GET(request: Request) {
     const id = searchParams.get('id');
     const donorId = searchParams.get('donorId');
     const campaignId = searchParams.get('campaignId');
+    
+    // Get admin organization
+    const adminId = getAdminIdFromRequest(request);
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+    }
 
     // Get single donation by ID
     if (id) {
-      const donation = await prisma.donation.findUnique({
-        where: { id: parseInt(id) },
+      const donation = await prisma.donation.findFirst({
+        where: { 
+          id: parseInt(id),
+          organizationName
+        },
         include: { donor: true, campaign: true }
       });
 
@@ -24,13 +35,13 @@ export async function GET(request: Request) {
     }
 
     // Build filter conditions
-    const where: any = {};
+    const where: any = { organizationName };
     if (donorId) where.donorId = parseInt(donorId);
     if (campaignId) where.campaignId = parseInt(campaignId);
 
     // Get donations with optional filters
     const donations = await prisma.donation.findMany({
-      where: Object.keys(where).length > 0 ? where : undefined,
+      where,
       include: { donor: true, campaign: true },
       orderBy: { date: 'desc' }
     });
@@ -49,6 +60,12 @@ export async function POST(request: Request) {
     const permission = await verifyPermission(adminId, 'donations', 'create');
     if (!permission.authorized) {
       return NextResponse.json({ error: permission.error }, { status: permission.status });
+    }
+    
+    // Get admin organization
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
     }
 
     const data = await request.json();
@@ -88,7 +105,8 @@ export async function POST(request: Request) {
     // Prepare data for creation
     const donationData = {
       ...validation.data,
-      date: new Date(validation.data.date)
+      date: new Date(validation.data.date),
+      organizationName
     };
 
     // Create donation in a transaction
@@ -147,6 +165,12 @@ export async function PUT(request: Request) {
     if (!permission.authorized) {
       return NextResponse.json({ error: permission.error }, { status: permission.status });
     }
+    
+    // Get admin organization
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+    }
 
     const data = await request.json();
     const { id, ...updateData } = data;
@@ -167,9 +191,12 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Check if donation exists
-    const existingDonation = await prisma.donation.findUnique({
-      where: { id: parseInt(id) }
+    // Check if donation exists in this organization
+    const existingDonation = await prisma.donation.findFirst({
+      where: { 
+        id: parseInt(id),
+        organizationName
+      }
     });
 
     if (!existingDonation) {
@@ -260,10 +287,19 @@ export async function DELETE(request: Request) {
     if (!permission.authorized) {
       return NextResponse.json({ error: permission.error }, { status: permission.status });
     }
+    
+    // Get admin organization
+    const organizationName = adminId ? await getAdminOrganization(adminId) : null;
+    if (!organizationName) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 401 });
+    }
 
-    // Check if donation exists
-    const existingDonation = await prisma.donation.findUnique({
-      where: { id: parseInt(id) }
+    // Check if donation exists in this organization
+    const existingDonation = await prisma.donation.findFirst({
+      where: { 
+        id: parseInt(id),
+        organizationName
+      }
     });
 
     if (!existingDonation) {

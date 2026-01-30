@@ -187,7 +187,7 @@ export function hasPermission(action: 'create' | 'read' | 'update' | 'delete', r
   }
 
   const restrictions = getAdminRestrictions();
-  
+
   // Check for "No Delete" restriction
   if (action === 'delete' && restrictions.includes('No Delete')) {
     return false;
@@ -265,7 +265,7 @@ export function canAccessScreen(screenName: string): boolean {
   };
 
   const screenRestrictions = restrictionMappings[screenName] || [];
-  
+
   // If any restriction applies to this screen, deny access
   if (screenRestrictions.some(r => restrictions.includes(r))) {
     return false;
@@ -280,7 +280,7 @@ export function canAccessScreen(screenName: string): boolean {
  */
 export function getAccessibleScreens(): string[] {
   const allScreens = ['Dashboard', 'Donors', 'Donations', 'Campaigns', 'Events', 'Reports', 'Notifications', 'Settings'];
-  
+
   if (isSuperAdmin()) {
     return [...allScreens, 'Admins', 'AI policy page'];
   }

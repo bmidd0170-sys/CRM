@@ -36,7 +36,12 @@ export default function SettingsPage() {
 
     async function fetchAdmins() {
         try {
-            const response = await fetch("/api/admins");
+            const currentAdminId = getAdminId();
+            const response = await fetch("/api/admins", {
+                headers: {
+                    'x-admin-id': currentAdminId?.toString() || ''
+                }
+            });
             if (response.ok) {
                 const data = await response.json();
                 setAdmins(data);
@@ -85,7 +90,7 @@ export default function SettingsPage() {
             const adminId = getAdminId();
             const response = await fetch("/api/admins", {
                 method: "POST",
-                headers: { 
+                headers: {
                     "Content-Type": "application/json",
                     'x-admin-id': adminId?.toString() || ''
                 },

@@ -20,52 +20,59 @@ model Admin {
 }
 
 model Donor {
-  id           Int        @id @default(autoincrement())
-  name         String
-  email        String     @unique
-  total        Float      @default(0)
-  lastDonation DateTime?
-  status       String
-  tags         String[]   @default([])
-  donations    Donation[]
+  id               Int        @id @default(autoincrement())
+  name             String
+  email            String
+  total            Float      @default(0)
+  lastDonation     DateTime?
+  status           String
+  tags             String[]   @default([])
+  donations        Donation[]
+  organizationName String     @default("Helping Hands")
+  
+  @@unique([email, organizationName])
 }
 
 model Notification {
-  id      Int      @id @default(autoincrement())
-  type    String
-  message String
-  date    DateTime
-  read    Boolean  @default(false)
+  id               Int      @id @default(autoincrement())
+  type             String
+  message          String
+  date             DateTime
+  read             Boolean  @default(false)
+  organizationName String   @default("Helping Hands")
 }
 
 model Campaign {
-  id          Int        @id @default(autoincrement())
-  name        String
-  goal        Float
-  raised      Float      @default(0)
-  startDate   DateTime
-  endDate     DateTime
-  description String?
-  donations   Donation[]
-  events      Event[]
+  id               Int        @id @default(autoincrement())
+  name             String
+  goal             Float
+  raised           Float      @default(0)
+  startDate        DateTime
+  endDate          DateTime
+  description      String?
+  donations        Donation[]
+  events           Event[]
+  organizationName String     @default("Helping Hands")
 }
 
 model Event {
-  id          Int       @id @default(autoincrement())
-  name        String
-  date        DateTime
-  description String?
-  image       String?
-  campaignId  Int?
-  campaign    Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  id               Int       @id @default(autoincrement())
+  name             String
+  date             DateTime
+  description      String?
+  image            String?
+  campaignId       Int?
+  campaign         Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  organizationName String    @default("Helping Hands")
 }
 
 model Donation {
-  id         Int       @id @default(autoincrement())
-  amount     Float
-  date       DateTime
-  donorId    Int
-  campaignId Int?
-  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  donor      Donor     @relation(fields: [donorId], references: [id], onDelete: Cascade)
+  id               Int       @id @default(autoincrement())
+  amount           Float
+  date             DateTime
+  donorId          Int
+  campaignId       Int?
+  campaign         Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  donor            Donor     @relation(fields: [donorId], references: [id], onDelete: Cascade)
+  organizationName String    @default("Helping Hands")
 }
