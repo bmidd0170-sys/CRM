@@ -1,2 +1,9 @@
-// This file is intentionally minimal
-// Prisma 7 handles configuration through environment variables and the schema
+import 'dotenv/config';
+import { defineConfig } from '@prisma/config';
+
+export default defineConfig({
+  datasource: {
+    url: process.env.DATABASE_URL,
+  },
+});
+
